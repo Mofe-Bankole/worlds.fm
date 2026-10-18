@@ -8,6 +8,12 @@ build/
 out/
 *.tsbuildinfo
 
+# Next.js generated types
+next-env.d.ts
+
+# Vercel
+.vercel
+
 # Test coverage
 coverage/
 
