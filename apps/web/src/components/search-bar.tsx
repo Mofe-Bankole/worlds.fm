@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { useExplorer } from "@/components/explorer-context";
+import { GlassSurface } from "@/components/primitives/glass-surface";
 import { cn } from "@/lib/cn";
 
 interface SearchBarProps {
@@ -27,20 +28,21 @@ export function SearchBar({ className, id = "worlds-search", size = "lg" }: Sear
       className={cn("group w-full", className)}
     >
       <label htmlFor={id} className="sr-only">
-        Search an artist, song, or cultural movement
+        Search an artist
       </label>
-      <div
+      <GlassSurface
+        radius="full"
+        tone="strong"
         className={cn(
-          "relative flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] pl-5 pr-2 backdrop-blur-xl transition duration-300",
-          "focus-within:border-electric/50 focus-within:bg-white/[0.06]",
-          "focus-within:shadow-[0_0_70px_-16px_rgba(190,255,85,0.55)]",
-          size === "lg" ? "py-2.5" : "py-1.5",
+          "flex items-center gap-3 pl-6 pr-2 transition duration-300",
+          "focus-within:shadow-glow-lg",
+          size === "lg" ? "py-2" : "py-1.5",
         )}
       >
         <Search
           aria-hidden="true"
           className={cn(
-            "shrink-0 text-muted transition-colors duration-300 group-focus-within:text-electric",
+            "shrink-0 text-text-2 transition-colors duration-300 group-focus-within:text-electric",
             size === "lg" ? "size-5" : "size-4",
           )}
         />
@@ -51,19 +53,18 @@ export function SearchBar({ className, id = "worlds-search", size = "lg" }: Sear
           autoComplete="off"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="Search an artist, song, or cultural movement..."
+          placeholder="Search an artist"
           className={cn(
-            "min-w-0 flex-1 bg-transparent text-cloud placeholder:text-muted/80 focus:outline-none",
-            size === "lg" ? "py-2.5 text-base sm:text-lg" : "py-1.5 text-sm",
+            "min-w-0 flex-1 bg-transparent text-text placeholder:text-text-2 focus:outline-none",
+            size === "lg" ? "py-3 text-base sm:text-lg" : "py-1.5 text-sm",
           )}
         />
         <button
           type="submit"
           aria-label="Explore this world"
           className={cn(
-            "grid shrink-0 place-items-center rounded-xl bg-brand text-ink transition duration-300",
-            "hover:bg-electric hover:shadow-[0_0_28px_-4px_rgba(190,255,85,0.9)]",
-            "active:scale-95",
+            "grid shrink-0 place-items-center rounded-full bg-electric text-on-accent transition duration-300",
+            "hover:bg-fresh hover:shadow-glow-sm active:scale-95",
             size === "lg" ? "size-12" : "size-9",
           )}
         >
@@ -72,7 +73,7 @@ export function SearchBar({ className, id = "worlds-search", size = "lg" }: Sear
             className={size === "lg" ? "size-5" : "size-4"}
           />
         </button>
-      </div>
+      </GlassSurface>
     </form>
   );
 }

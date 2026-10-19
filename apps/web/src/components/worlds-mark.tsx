@@ -15,9 +15,9 @@ export function WorldsMark(props: SVGProps<SVGSVGElement>) {
     >
       <defs>
         <linearGradient id="worlds-mark" x1="4" y1="6" x2="36" y2="34">
-          <stop offset="0%" stopColor="#BEFF55" />
-          <stop offset="55%" stopColor="#1ED760" />
-          <stop offset="100%" stopColor="#0F9E4A" />
+          <stop offset="0%" style={{ stopColor: "var(--color-fresh)" }} />
+          <stop offset="55%" style={{ stopColor: "var(--color-electric)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--color-forest)" }} />
         </linearGradient>
       </defs>
       <circle
@@ -44,8 +44,8 @@ export function WorldsMark(props: SVGProps<SVGSVGElement>) {
         strokeWidth="1"
         opacity="0.28"
       />
-      <circle cx="34.4" cy="11.2" r="2.5" fill="#BEFF55" />
-      <circle cx="34.4" cy="11.2" r="4.6" fill="#BEFF55" opacity="0.22" />
+      <circle cx="34.4" cy="11.2" r="2.5" style={{ fill: "var(--color-fresh)" }} />
+      <circle cx="34.4" cy="11.2" r="4.6" style={{ fill: "var(--color-fresh)" }} opacity="0.22" />
     </svg>
   );
 }
