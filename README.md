@@ -200,17 +200,20 @@ API routes are **targets**, not a claim that existing code implements them. Publ
 
 ## Visual identity
 
-A **Spotify-inspired dark/green foundation, but not Spotify branding or copied UI**. Worlds.fm should feel cinematic, geographic, social, and culturally curious.
+A **near-black, green-tinted dark foundation with a restrained green palette, but not Spotify branding or copied UI**. Worlds.fm should feel cinematic, geographic, social, and culturally curious. The approved creative direction is [`docs/design/landing-page-blueprint.md`](./docs/design/landing-page-blueprint.md).
 
 | Token | Hex | Purpose |
 |---|---|---|
-| `worlds.midnight` | `#0B100E` | Main background |
-| `worlds.surface` | `#1A2420` | Cards, navigation, panels |
-| `worlds.green` | `#55E6A5` | Primary action, selection, active nodes |
-| `worlds.cloud` | `#F5F7F5` | Main text |
-| `worlds.muted` | `#A8B7AE` | Secondary text |
+| `night` | `#08120B` | Page background (approved dark background) |
+| `electric` | `#00CD37` | Primary action, focus ring, live and verified signals |
+| `vibrant` | `#46D35D` | Affinity accents, hover on green elements |
+| `fresh` | `#5DDE6C` | Primary action hover |
+| `mint` | `#CBF2CD` | Wordmark outline, pull quotes, glass highlights |
+| `forest` | `#2A6E4C` | Ambient glow, map land, large decoration only |
+| `surface-1` / `surface-2` | `#0E1912` / `#142219` | Raised and elevated panels (derived) |
+| `text` / `text-2` / `text-3` | `#EEF6EF` / `#A3B5A8` / `#74877A` | Primary, secondary, tertiary text (derived) |
 
-Use restrained indigo/cyan/amber accents for **meaningful** graph categories and status. Encode relationship types through **labels, line patterns, and icons**, not color alone. Aim for WCAG AA contrast, keyboard-accessible controls, mobile support, and reduced-motion preferences. Do not use generic admin-dashboard styling, gratuitous gradients, or copied Spotify layouts.
+Tokens are implemented in `apps/web/src/styles/tokens.css`. **Green means signal:** saturated green marks only what is interactive, live, or verified. Any additional category or status color must be added to `tokens.css` with contrast checked against `night`. Encode relationship types through **labels, line patterns, and icons**, not color alone. Aim for WCAG AA contrast, keyboard-accessible controls, mobile support, and reduced-motion preferences. Do not use generic admin-dashboard styling, gratuitous gradients, or copied Spotify layouts.
 
 ## Development bootstrap — M0 tasks
 
