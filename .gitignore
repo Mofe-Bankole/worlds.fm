@@ -37,3 +37,6 @@ Thumbs.db
 !.vscode/extensions.json
 *.swp
 *.swo
+
+# Third-party design reference screenshots (not ours to redistribute)
+docs/design/references/
