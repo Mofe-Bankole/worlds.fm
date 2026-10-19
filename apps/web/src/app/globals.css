@@ -1,35 +1,10 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/typography.css";
+@import "../styles/surfaces.css";
 
-/* ---------------------------------------------------------------------------
-   Worlds.fm — design tokens
-   A Spotify-inspired dark/green foundation with an original identity.
---------------------------------------------------------------------------- */
-@theme {
-  --color-ink: #080a09;
-  --color-ink-2: #0b1210;
-  --color-surface: #0f1714;
-  --color-brand: #1ed760;
-  --color-electric: #beff55;
-  --color-forest: #103d2b;
-  --color-cloud: #f6f8f5;
-  --color-muted: #93a89e;
-
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
-
-  --radius-4xl: 2rem;
-
-  --animate-float: float 9s ease-in-out infinite;
-  --animate-float-slow: float 14s ease-in-out infinite;
-  --animate-drift: drift 26s ease-in-out infinite;
-  --animate-drift-slow: drift 44s ease-in-out infinite;
-  --animate-sheen: sheen 7s ease-in-out infinite;
-  --animate-flow: flow 7s linear infinite;
-  --animate-pulse-glow: pulseGlow 5s ease-in-out infinite;
-  --animate-rise: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-twinkle: twinkle 6s ease-in-out infinite;
-  --animate-spin-slow: spin 34s linear infinite;
-}
+/* Design tokens live in src/styles/tokens.css. Keyframes for the existing
+   (pre-blueprint) page stay here until Phase 1 replaces those components. */
 
 @keyframes float {
   0%,
@@ -113,14 +88,14 @@
   }
 
   body {
-    background-color: var(--color-ink);
-    color: var(--color-cloud);
+    background-color: var(--color-night);
+    color: var(--color-text);
     text-rendering: optimizeLegibility;
   }
 
   ::selection {
     background-color: var(--color-electric);
-    color: #06210f;
+    color: var(--color-on-accent);
   }
 
   :focus-visible {
@@ -138,8 +113,8 @@
     background-image: linear-gradient(
       100deg,
       var(--color-electric) 0%,
-      var(--color-brand) 48%,
-      #7ff2b4 100%
+      var(--color-vibrant) 48%,
+      var(--color-mint) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
