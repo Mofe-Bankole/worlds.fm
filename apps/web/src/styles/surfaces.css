@@ -1,0 +1,109 @@
+/* ---------------------------------------------------------------------------
+   Glass and text-outline surfaces (blueprint §2 "Glass").
+   Glass is reserved for: navigation, hero search, carousel controls, orbit
+   detail card and mobile sheets. Never for bento or gallery cards.
+--------------------------------------------------------------------------- */
+@layer components {
+  .glass-surface {
+    --glass-radius: var(--radius-panel);
+    position: relative;
+    isolation: isolate;
+    border-radius: var(--glass-radius);
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .glass-surface[data-tone="strong"] {
+    background: var(--glass-bg-strong);
+  }
+
+  .glass-surface[data-radius="field"] {
+    --glass-radius: var(--radius-field);
+  }
+
+  .glass-surface[data-radius="full"] {
+    --glass-radius: 9999px;
+  }
+
+  /* 1px gradient rim, drawn by masking everything except the border box. */
+  .glass-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      160deg,
+      var(--glass-border-from),
+      var(--glass-border-to) 60%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+
+  /* Soft light along the top edge. */
+  .glass-surface[data-highlight="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: radial-gradient(
+      120% 70% at 50% 0%,
+      color-mix(in oklab, var(--color-mint) 10%, transparent),
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  /* No backdrop-filter support: fall back to a near-opaque surface. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-surface,
+    .glass-surface[data-tone="strong"] {
+      background: var(--glass-solid);
+    }
+  }
+
+  /* Users who ask for less transparency get a solid surface. */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-surface,
+    .glass-surface[data-tone="strong"] {
+      background: var(--glass-solid);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
+  /* Outlined display type. The stroke is the fill-less letterform; tone
+     controls how visible it is on Night. */
+  .outlined-text {
+    --outline-width: 1.5px;
+    --outline-color: color-mix(in oklab, var(--color-mint) 28%, transparent);
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: var(--outline-width) var(--outline-color);
+    paint-order: stroke fill;
+  }
+
+  .outlined-text[data-tone="mint"] {
+    --outline-color: var(--color-mint);
+  }
+
+  .outlined-text[data-tone="electric"] {
+    --outline-color: var(--color-electric);
+  }
+
+  .outlined-text[data-fill="solid"] {
+    color: var(--color-text);
+    -webkit-text-fill-color: currentColor;
+  }
+}

@@ -1,0 +1,96 @@
+/* ---------------------------------------------------------------------------
+   Typography roles (blueprint §2). Apply with `type-*` classes so sizes live
+   in one place. Fonts: Manrope (sans), Instrument Serif (accent), JetBrains
+   Mono (metadata), all OFL, loaded through next/font in layout.tsx.
+--------------------------------------------------------------------------- */
+@utility type-hero {
+  font-family: var(--font-sans);
+  font-size: clamp(3rem, 9vw, 8.5rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+@utility type-cta {
+  font-family: var(--font-sans);
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+@utility type-section {
+  font-family: var(--font-sans);
+  font-size: clamp(2.25rem, 4.5vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+@utility type-sub {
+  font-family: var(--font-sans);
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+@utility type-lead {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+@utility type-body {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+@utility type-small {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* Mono metadata: index numbers, city, evidence type. */
+@utility type-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Editorial serif: pull quotes and single accent words only. */
+@utility type-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* "Worlds.fm" is about 4.8em wide at this tracking, so 20vw spans roughly 96%
+   of the viewport. The blueprint's 22vw / 6rem minimum overflowed a 390px
+   phone, and -0.06em tracking made neighbouring outlined letters cross.
+   Known artifact: Manrope's glyphs contain overlapping contours, so a stroked
+   wordmark shows stray inner lines (d, m, t). Phase 4 should render the
+   wordmark as an overlap-free SVG path instead of live text. */
+@utility type-wordmark {
+  font-family: var(--font-sans);
+  font-size: clamp(3rem, 20vw, 26rem);
+  font-weight: 800;
+  line-height: 0.8;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}

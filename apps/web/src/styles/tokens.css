@@ -1,0 +1,117 @@
+/* ---------------------------------------------------------------------------
+   Worlds.fm design tokens (source of truth)
+   Spec: docs/design/landing-page-blueprint.md §2
+
+   Rule: "green means signal". Saturated green marks only what is interactive,
+   live or verified. Forest and Mint carry atmosphere. Components must consume
+   these tokens, never raw hex.
+--------------------------------------------------------------------------- */
+@theme {
+  /* Official brand colors */
+  --color-night: #08120b;
+  --color-electric: #00cd37;
+  --color-forest: #2a6e4c;
+  --color-vibrant: #46d35d;
+  --color-fresh: #5dde6c;
+  --color-mint: #cbf2cd;
+
+  /* Derived surfaces (hue matched to Night) */
+  --color-surface-1: #0e1912;
+  --color-surface-2: #142219;
+
+  /* Derived text. Contrast on Night: text 17.3, text-2 8.8, text-3 5.0.
+     text-3 is 4.3:1 on surface-2, so use it only on Night or surface-1. */
+  --color-text: #eef6ef;
+  --color-text-2: #a3b5a8;
+  --color-text-3: #74877a;
+
+  /* White on Electric is 2.15:1 and fails; Night on Electric is 8.9:1. */
+  --color-on-accent: var(--color-night);
+
+  --color-line: color-mix(in oklab, var(--color-mint) 8%, transparent);
+  --color-line-strong: color-mix(in oklab, var(--color-mint) 16%, transparent);
+
+  /* Legacy aliases so the pre-blueprint page keeps rendering on the new
+     palette. Remove once Phase 1 replaces those components. */
+  --color-ink: var(--color-night);
+  --color-ink-2: var(--color-surface-1);
+  --color-surface: var(--color-surface-1);
+  --color-brand: var(--color-electric);
+  --color-cloud: var(--color-text);
+  --color-muted: var(--color-text-2);
+
+  /* Typeface roles. The --font-* variables are set by next/font in layout.tsx. */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, "Times New Roman",
+    serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
+
+  /* Radii. Tailwind's own sm/md/lg/xl scale is left untouched; blueprint radii
+     get semantic names so existing utilities do not change size. */
+  --radius-panel: 1.75rem; /* bento panels and cards (28px) */
+  --radius-field: 2.25rem; /* search field (36px) */
+  --radius-4xl: 2rem;
+
+  /* Depth: dark UIs hide shadows, so pair a soft top highlight with ambient shadow. */
+  --shadow-lift:
+    inset 0 1px 0 color-mix(in oklab, var(--color-mint) 6%, transparent),
+    0 30px 80px -20px rgb(0 0 0 / 0.6);
+  --shadow-glow-sm: 0 0 28px -6px
+    color-mix(in oklab, var(--color-electric) 80%, transparent);
+  --shadow-glow-md: 0 0 50px -8px
+    color-mix(in oklab, var(--color-electric) 80%, transparent);
+  --shadow-glow-lg: 0 0 70px -16px
+    color-mix(in oklab, var(--color-electric) 55%, transparent);
+
+  /* Reveal easing (GSAP equivalent: "expo.out"). */
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-float-slow: float 14s ease-in-out infinite;
+  --animate-drift: drift 26s ease-in-out infinite;
+  --animate-drift-slow: drift 44s ease-in-out infinite;
+  --animate-sheen: sheen 7s ease-in-out infinite;
+  --animate-flow: flow 7s linear infinite;
+  --animate-pulse-glow: pulseGlow 5s ease-in-out infinite;
+  --animate-rise: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-twinkle: twinkle 6s ease-in-out infinite;
+  --animate-spin-slow: spin 34s linear infinite;
+}
+
+/* Tokens Tailwind has no namespace for. Prefixed to avoid colliding with
+   third-party token sets (see docs/design/arc-ui-audit.md). */
+:root {
+  --layout-max: 80rem;
+  --layout-gutter: clamp(1.25rem, 4vw, 3rem);
+  --layout-section-y: clamp(6rem, 12vw, 11rem);
+
+  --motion-duration-instant: 120ms;
+  --motion-duration-fast: 200ms;
+  --motion-duration-base: 320ms;
+  --motion-duration-slow: 600ms;
+  --motion-duration-slower: 900ms;
+  --motion-duration-cinematic: 1400ms;
+
+  --z-content: 0;
+  --z-raised: 10;
+  --z-sticky: 40;
+  --z-nav: 50;
+  --z-overlay: 60;
+  --z-toast: 70;
+
+  /* Glass (see surfaces.css). Blur is lighter on small screens. */
+  --glass-bg: color-mix(in oklab, var(--color-surface-1) 55%, transparent);
+  --glass-bg-strong: color-mix(in oklab, var(--color-surface-1) 78%, transparent);
+  --glass-solid: color-mix(in oklab, var(--color-surface-1) 94%, transparent);
+  --glass-blur: 12px;
+  --glass-border-from: color-mix(in oklab, var(--color-mint) 22%, transparent);
+  --glass-border-to: color-mix(in oklab, var(--color-mint) 4%, transparent);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --glass-blur: 20px;
+  }
+}

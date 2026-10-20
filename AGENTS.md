@@ -99,16 +99,23 @@ Spotify references: https://developer.spotify.com/documentation/embeds and https
 
 ## 8. UX and design consistency
 
-Adopt **Worlds.fm's own visual language**: Spotify-inspired dark foundation, never cloned Spotify interface or marks.
+Adopt **Worlds.fm's own visual language**: a near-black, green-tinted dark foundation with a restrained green palette; never a cloned Spotify interface or marks. The approved direction is `docs/design/landing-page-blueprint.md`.
+
+Official brand colors (source of truth: `apps/web/src/styles/tokens.css`; consume them as tokens, never as raw hex in components):
 
 ```text
---worlds-midnight: #0B100E
---worlds-surface:  #1A2420
---worlds-green:    #55E6A5
---worlds-cloud:    #F5F7F5
---worlds-muted:    #A8B7AE
+--color-night:    #08120B   Approved dark background
+--color-electric: #00CD37   Primary Electric Green
+--color-forest:   #2A6E4C   Forest Green
+--color-vibrant:  #46D35D   Vibrant Green
+--color-fresh:    #5DDE6C   Fresh Green
+--color-mint:     #CBF2CD   Soft Mint
 ```
 
+Derived neutrals (also in `tokens.css`): `surface-1 #0E1912`, `surface-2 #142219`, `text #EEF6EF`, `text-2 #A3B5A8`, `text-3 #74877A`.
+
+- **Green means signal.** Saturated green marks only what is interactive, live, or verified. Forest and Mint carry atmosphere. Do not flood the interface with green.
+- Text on Electric uses Night (`--color-on-accent`); white on Electric fails contrast. Forest is large-decoration only, never body text. `text-3` is for Night and `surface-1` only.
 - Search and artist/song World discovery are primary. Map and cultural graph are signature first-class components, not admin widgets.
 - Build responsive layouts, readable charts, loading/error/empty states, focus outlines, keyboard navigation, descriptive accessible labels, and reduced-motion support.
 - Meet WCAG AA contrast; never communicate graph relationship classes solely with color. Explain link types in tooltips and detail panels.
