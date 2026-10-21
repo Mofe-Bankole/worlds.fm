@@ -57,7 +57,7 @@ The first six are official brand colors; other neutrals are derived from the bac
 | `--color-forest` | `#2A6E4C` | Ambient glow, map land, selected backgrounds; large decoration only | ≈ 3.1:1 (never body text) |
 | `--color-text` | `#EEF6EF` | Primary text | ≈ 17:1 |
 | `--color-text-2` | `#A3B5A8` | Secondary text | ≈ 8.8:1 |
-| `--color-text-3` | `#74877A` | Tertiary text, metadata. Night and `surface-1` only: it is 4.3:1 on `surface-2`, below AA. | ≈ 5:1 |
+| `--color-text-3` | `#8AA090` | Tertiary text, metadata. Raised from `#74877A` in the Phase 1 refinement pass: now 6.8:1 on Night, 6.4:1 on `surface-1`, 5.9:1 on `surface-2`. | 6.8:1 |
 | `--color-line` | mint at 8% | Hairline borders | – |
 | `--color-line-strong` | mint at 16% | Hover and focus borders | – |
 | `--color-on-accent` | `#08120B` | Text on green fills (white on `#00CD37` fails at ≈ 2.1:1) | – |

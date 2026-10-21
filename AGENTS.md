@@ -112,7 +112,7 @@ Official brand colors (source of truth: `apps/web/src/styles/tokens.css`; consum
 --color-mint:     #CBF2CD   Soft Mint
 ```
 
-Derived neutrals (also in `tokens.css`): `surface-1 #0E1912`, `surface-2 #142219`, `text #EEF6EF`, `text-2 #A3B5A8`, `text-3 #74877A`.
+Derived neutrals (also in `tokens.css`): `surface-1 #0E1912`, `surface-2 #142219`, `text #EEF6EF`, `text-2 #A3B5A8`, `text-3 #8AA090`.
 
 - **Green means signal.** Saturated green marks only what is interactive, live, or verified. Forest and Mint carry atmosphere. Do not flood the interface with green.
 - Text on Electric uses Night (`--color-on-accent`); white on Electric fails contrast. Forest is large-decoration only, never body text. `text-3` is for Night and `surface-1` only.

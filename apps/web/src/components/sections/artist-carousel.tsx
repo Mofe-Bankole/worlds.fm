@@ -52,12 +52,12 @@ export function ArtistCarousel() {
         ref={trackRef}
         tabIndex={0}
         aria-label="Artists"
-        className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-[var(--layout-gutter)] px-[var(--layout-gutter)] pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-5 overflow-x-auto [&>li:first-child]:ml-auto [&>li:last-child]:mr-auto scroll-px-[var(--layout-gutter)] px-[var(--layout-gutter)] pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {ARTISTS.map((artist) => (
           <li
             key={artist.id}
-            className="w-[78vw] max-w-80 shrink-0 snap-start sm:w-72"
+            className="w-[78vw] max-w-80 shrink-0 snap-center sm:w-72"
           >
             <article className="flex h-full flex-col gap-4 rounded-panel border border-line bg-surface-1 p-3 shadow-lift">
               <MediaFrame

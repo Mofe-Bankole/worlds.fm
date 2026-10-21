@@ -142,6 +142,9 @@ export const ARTISTS: readonly ArtistCard<SourceId>[] = [
       kind: "placeholder",
       label: "Avicii",
       tone: "forest",
+      layout: "initial",
+      kicker: "Stockholm",
+      seed: 2,
       alt: "Placeholder artwork for Avicii. No photograph has been licensed yet.",
     },
     insight: {
@@ -161,6 +164,9 @@ export const ARTISTS: readonly ArtistCard<SourceId>[] = [
       kind: "placeholder",
       label: "Rihanna",
       tone: "mint",
+      layout: "stack",
+      kicker: "Barbados",
+      seed: 9,
       alt: "Placeholder artwork for Rihanna. No photograph has been licensed yet.",
     },
     insight: {
@@ -183,6 +189,9 @@ export const ARTISTS: readonly ArtistCard<SourceId>[] = [
       kind: "placeholder",
       label: "Bob Marley",
       tone: "night",
+      layout: "vertical",
+      kicker: "Kingston",
+      seed: 5,
       alt: "Placeholder artwork for Bob Marley. No photograph has been licensed yet.",
     },
     insight: {
@@ -204,7 +213,10 @@ export const ARTISTS: readonly ArtistCard<SourceId>[] = [
     media: {
       kind: "placeholder",
       label: "Fela Kuti",
-      tone: "forest",
+      tone: "electric",
+      layout: "place",
+      kicker: "Lagos",
+      seed: 13,
       alt: "Placeholder artwork for Fela Kuti. No photograph has been licensed yet.",
     },
     insight: {

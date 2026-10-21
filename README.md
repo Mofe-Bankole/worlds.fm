@@ -190,6 +190,8 @@ worlds-fm/
 | Endpoint | Responsibility |
 |---|---|
 | `GET /health` | Health check without external secrets. |
+| `GET /api/v1/media/artist?name=` | Artist image discovery with provenance + rights status (implemented; see `docs/backend/media-api.md`). |
+| `GET /api/v1/media/album?artist=&title=` | Album artwork discovery with provenance + rights status (implemented; see `docs/backend/media-api.md`). |
 | `GET /api/v1/search?q=` | Safe artist discovery; song results only when authorized catalog is integrated. |
 | `GET /api/v1/artists/:id/world` | Validated world nodes, relationships, and source/label metadata. |
 | `GET /api/v1/artists/:id/affinities` | Normalized Qloo results, with allowed category filters. |
@@ -211,7 +213,7 @@ A **near-black, green-tinted dark foundation with a restrained green palette, bu
 | `mint` | `#CBF2CD` | Wordmark outline, pull quotes, glass highlights |
 | `forest` | `#2A6E4C` | Ambient glow, map land, large decoration only |
 | `surface-1` / `surface-2` | `#0E1912` / `#142219` | Raised and elevated panels (derived) |
-| `text` / `text-2` / `text-3` | `#EEF6EF` / `#A3B5A8` / `#74877A` | Primary, secondary, tertiary text (derived) |
+| `text` / `text-2` / `text-3` | `#EEF6EF` / `#A3B5A8` / `#8AA090` | Primary, secondary, tertiary text (derived) |
 
 Tokens are implemented in `apps/web/src/styles/tokens.css`. **Green means signal:** saturated green marks only what is interactive, live, or verified. Any additional category or status color must be added to `tokens.css` with contrast checked against `night`. Encode relationship types through **labels, line patterns, and icons**, not color alone. Aim for WCAG AA contrast, keyboard-accessible controls, mobile support, and reduced-motion preferences. Do not use generic admin-dashboard styling, gratuitous gradients, or copied Spotify layouts.
 

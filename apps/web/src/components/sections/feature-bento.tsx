@@ -19,6 +19,13 @@ const SPAN: Record<PanelId, string> = {
   share: "lg:col-span-3",
 };
 
+const TONE: Partial<Record<PanelId, string>> = {
+  map: "bg-[linear-gradient(170deg,var(--color-forest),var(--color-surface-1)_70%)]",
+  provenance: "border-electric/40!",
+  affinity: "border-dashed border-line-strong!",
+  graph: "border-mint/25!",
+};
+
 const STATUS_LABEL = {
   in_development: "In development",
   planned: "Planned",
@@ -112,6 +119,7 @@ export function FeatureBento() {
             className={cn(
               "flex flex-col gap-6 rounded-panel border border-line bg-surface-1 p-7 shadow-lift sm:p-8",
               SPAN[panel.id],
+              TONE[panel.id],
             )}
           >
             <p className="type-eyebrow text-text-3">

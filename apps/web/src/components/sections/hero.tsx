@@ -26,7 +26,7 @@ export function Hero() {
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-night" />
       </div>
 
-      <div className="mx-auto w-full max-w-[var(--layout-max)] px-[var(--layout-gutter)]">
+      <div className="mx-auto flex w-full max-w-[var(--layout-max)] flex-col items-center px-[var(--layout-gutter)] text-center">
         <p className="type-eyebrow text-text-2">Music × culture × place</p>
         <h1
           id="hero-heading"
@@ -41,9 +41,9 @@ export function Hero() {
           them. Every link shows what it is based on.
         </p>
 
-        <div className="mt-10 max-w-2xl">
+        <div className="mt-10 w-full max-w-2xl">
           <SearchBar />
-          <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             <span className="type-eyebrow mr-1 text-text-3">Try</span>
             {EXAMPLE_SEARCHES.map((name) => (
               <button
@@ -59,7 +59,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="mt-20">
+      <div className="mt-16 sm:mt-20">
         <ArtistCarousel />
       </div>
     </section>
