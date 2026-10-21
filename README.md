@@ -190,6 +190,8 @@ worlds-fm/
 | Endpoint | Responsibility |
 |---|---|
 | `GET /health` | Health check without external secrets. |
+| `GET /api/v1/media/artist?name=` | Artist image discovery with provenance + rights status (implemented; see `docs/backend/media-api.md`). |
+| `GET /api/v1/media/album?artist=&title=` | Album artwork discovery with provenance + rights status (implemented; see `docs/backend/media-api.md`). |
 | `GET /api/v1/search?q=` | Safe artist discovery; song results only when authorized catalog is integrated. |
 | `GET /api/v1/artists/:id/world` | Validated world nodes, relationships, and source/label metadata. |
 | `GET /api/v1/artists/:id/affinities` | Normalized Qloo results, with allowed category filters. |
