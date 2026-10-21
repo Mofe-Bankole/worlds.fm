@@ -238,8 +238,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 # apps/api/.env — NEVER COMMIT
 PORT=4000
 CORS_ALLOWED_ORIGIN=http://localhost:3000
+# Issued by Qloo; sent as the X-Api-Key header. Never expose to the browser.
 QLOO_API_KEY=
-QLOO_API_BASE_URL=https://api.qloo.com
+QLOO_API_BASE_URL=https://hackathon.api.qloo.com
 DATABASE_URL=
 # If the API uses Supabase service-role features, store the key on the API only.
 SUPABASE_URL=
