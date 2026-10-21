@@ -8,6 +8,8 @@ interface SectionHeaderProps {
   title: ReactNode;
   description?: ReactNode;
   headingLevel?: 1 | 2 | 3;
+  /** `lg` uses the CTA scale for the signature sections. */
+  size?: "base" | "lg";
   align?: "start" | "center";
   id?: string;
   className?: string;
@@ -24,6 +26,7 @@ export function SectionHeader({
   title,
   description,
   headingLevel = 2,
+  size = "base",
   align = "start",
   id,
   className,
@@ -43,7 +46,10 @@ export function SectionHeader({
         {index ? <span aria-hidden="true">·</span> : null}
         <span>{eyebrow}</span>
       </p>
-      <Heading id={id} className="type-section text-text">
+      <Heading
+        id={id}
+        className={cn(size === "lg" ? "type-cta" : "type-section", "text-text")}
+      >
         {title}
       </Heading>
       {description ? (

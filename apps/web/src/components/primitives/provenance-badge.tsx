@@ -24,6 +24,24 @@ interface ProvenanceBadgeProps {
 }
 
 /**
+ * Demonstration-content marker. Sits next to the claim it qualifies, not in a
+ * page footer: a reader who scans one card must still see that the content is
+ * not sourced yet.
+ */
+export function DemoBadge({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "type-eyebrow inline-flex rounded-full border border-dashed border-line-strong px-2.5 py-1 text-[0.6875rem] text-text-2",
+        className,
+      )}
+    >
+      Demo data
+    </span>
+  );
+}
+
+/**
  * Evidence label for a cultural relationship. The kind is always carried by
  * three signals: a text label, an icon and a line pattern. Color only adds to
  * them, so it never has to be perceived on its own.
@@ -77,11 +95,7 @@ export function ProvenanceBadge({
           />
         </svg>
       </span>
-      {demo ? (
-        <span className="type-eyebrow rounded-full border border-dashed border-line-strong px-2.5 py-1 text-[0.6875rem] text-text-2">
-          Demo data
-        </span>
-      ) : null}
+      {demo ? <DemoBadge /> : null}
       {fixture ? (
         <span className="type-eyebrow rounded-full border border-dashed border-line-strong px-2.5 py-1 text-[0.6875rem] text-text-2">
           Qloo fixture

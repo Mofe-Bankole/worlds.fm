@@ -213,7 +213,7 @@ A **near-black, green-tinted dark foundation with a restrained green palette, bu
 | `mint` | `#CBF2CD` | Wordmark outline, pull quotes, glass highlights |
 | `forest` | `#2A6E4C` | Ambient glow, map land, large decoration only |
 | `surface-1` / `surface-2` | `#0E1912` / `#142219` | Raised and elevated panels (derived) |
-| `text` / `text-2` / `text-3` | `#EEF6EF` / `#A3B5A8` / `#74877A` | Primary, secondary, tertiary text (derived) |
+| `text` / `text-2` / `text-3` | `#EEF6EF` / `#A3B5A8` / `#8AA090` | Primary, secondary, tertiary text (derived) |
 
 Tokens are implemented in `apps/web/src/styles/tokens.css`. **Green means signal:** saturated green marks only what is interactive, live, or verified. Any additional category or status color must be added to `tokens.css` with contrast checked against `night`. Encode relationship types through **labels, line patterns, and icons**, not color alone. Aim for WCAG AA contrast, keyboard-accessible controls, mobile support, and reduced-motion preferences. Do not use generic admin-dashboard styling, gratuitous gradients, or copied Spotify layouts.
 

@@ -19,11 +19,11 @@
   --color-surface-1: #0e1912;
   --color-surface-2: #142219;
 
-  /* Derived text. Contrast on Night: text 17.3, text-2 8.8, text-3 5.0.
-     text-3 is 4.3:1 on surface-2, so use it only on Night or surface-1. */
+  /* Derived text. Contrast on Night / surface-1 / surface-2: text 17.3 / 16 / 15,
+     text-2 8.8 / 8.3 / 7.6, text-3 6.8 / 6.4 / 5.9. All pass WCAG AA (4.5:1). */
   --color-text: #eef6ef;
   --color-text-2: #a3b5a8;
-  --color-text-3: #74877a;
+  --color-text-3: #8aa090;
 
   /* White on Electric is 2.15:1 and fails; Night on Electric is 8.9:1. */
   --color-on-accent: var(--color-night);
@@ -85,7 +85,7 @@
 :root {
   --layout-max: 80rem;
   --layout-gutter: clamp(1.25rem, 4vw, 3rem);
-  --layout-section-y: clamp(6rem, 12vw, 11rem);
+  --layout-section-y: clamp(4.5rem, 7vw, 6.5rem);
 
   --motion-duration-instant: 120ms;
   --motion-duration-fast: 200ms;

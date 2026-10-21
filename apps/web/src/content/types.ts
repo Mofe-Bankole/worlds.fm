@@ -45,7 +45,16 @@ export interface PlaceholderAsset {
   kind: "placeholder";
   alt: string;
   label: string;
-  tone: "forest" | "mint" | "night";
+  tone: "forest" | "mint" | "night" | "electric";
+  /**
+   * Editorial typographic treatment, so each placeholder reads as its own
+   * cover rather than a repeated tile. `kicker` must restate a sourced fact
+   * (for example a place name already cited for the artist).
+   */
+  layout: "initial" | "stack" | "vertical" | "place";
+  kicker: string;
+  /** Seeds the contour pattern so every placeholder has its own terrain. */
+  seed: number;
 }
 
 export type MediaAsset = ImageAsset | PlaceholderAsset;
