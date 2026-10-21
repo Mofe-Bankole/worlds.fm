@@ -45,6 +45,16 @@ const envSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
   CORS_ALLOWED_ORIGIN: z.string().min(1).default("http://localhost:3000"),
+  /**
+   * Proxies whose X-Forwarded-For is trusted: "false" (default, use the socket
+   * address), a hop count such as "1", or comma-separated IPs/CIDRs.
+   * "true" is rejected because it trusts any client-supplied header.
+   */
+  TRUST_PROXY: z
+    .string()
+    .trim()
+    .default("false")
+    .refine((v) => v.toLowerCase() !== "true", "TRUST_PROXY=true trusts arbitrary X-Forwarded-For; use a hop count or IP/CIDR list"),
 
   /** Identifying User-Agent for provider requests (required by MusicBrainz). */
   MEDIA_USER_AGENT: z
@@ -59,6 +69,27 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
+
+  /**
+   * Qloo Insights API. Server-side only: the key is sent as the `x-api-key`
+   * header and must never reach the browser or a NEXT_PUBLIC_* variable.
+   * When the key is unset or blank, Qloo features report themselves as disabled.
+   */
+  QLOO_API_BASE_URL: z.string().url().default("https://hackathon.api.qloo.com"),
+  QLOO_API_KEY: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+
+  /** Qloo HTTP tuning. Requests are small GETs; keep timeouts and retries tight. */
+  QLOO_HTTP_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(8000),
+  QLOO_HTTP_RETRIES: z.coerce.number().int().min(0).max(3).default(1),
+  /** Private server-side cache only; Qloo allows this, but not public storage. */
+  QLOO_CACHE_TTL_MS: z.coerce.number().int().min(0).default(3_600_000),
+  QLOO_NEGATIVE_CACHE_TTL_MS: z.coerce.number().int().min(0).default(300_000),
+  QLOO_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).default(500),
+  /** Per-client request cap for /api/v1/qloo/* (each request may spend quota). */
+  QLOO_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(20),
 
   MEDIA_ARTIST_PROVIDER_ORDER: providerOrderSchema(ARTIST_IMAGE_PROVIDERS).prefault(
     "theaudiodb,fanart"
@@ -88,11 +119,20 @@ export interface AppConfig {
   nodeEnv: "development" | "test" | "production";
   host: string;
   port: number;
+  trustProxy: boolean | number | string[];
   logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
   corsAllowedOrigin: string[];
   mediaUserAgent: string;
   theAudioDbApiKey: string;
   fanartApiKey: string | undefined;
+  qlooApiBaseUrl: string;
+  qlooApiKey: string | undefined;
+  qlooHttpTimeoutMs: number;
+  qlooHttpRetries: number;
+  qlooCacheTtlMs: number;
+  qlooNegativeCacheTtlMs: number;
+  qlooCacheMaxEntries: number;
+  qlooRateLimitPerMinute: number;
   artistProviderOrder: ArtistImageProvider[];
   albumProviderOrder: AlbumImageProvider[];
   mediaHttpTimeoutMs: number;
@@ -117,6 +157,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     nodeEnv: cfg.NODE_ENV,
     host: cfg.HOST,
     port: cfg.PORT,
+    trustProxy: parseTrustProxy(cfg.TRUST_PROXY),
     logLevel: cfg.LOG_LEVEL,
     corsAllowedOrigin: cfg.CORS_ALLOWED_ORIGIN.split(",")
       .map((origin) => origin.trim())
@@ -124,6 +165,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     mediaUserAgent: cfg.MEDIA_USER_AGENT,
     theAudioDbApiKey: cfg.THEAUDIODB_API_KEY,
     fanartApiKey: cfg.FANART_API_KEY,
+    // Normalized so callers can concatenate paths without double slashes.
+    qlooApiBaseUrl: cfg.QLOO_API_BASE_URL.replace(/\/+$/, ""),
+    qlooApiKey: cfg.QLOO_API_KEY,
+    qlooHttpTimeoutMs: cfg.QLOO_HTTP_TIMEOUT_MS,
+    qlooHttpRetries: cfg.QLOO_HTTP_RETRIES,
+    qlooCacheTtlMs: cfg.QLOO_CACHE_TTL_MS,
+    qlooNegativeCacheTtlMs: cfg.QLOO_NEGATIVE_CACHE_TTL_MS,
+    qlooCacheMaxEntries: cfg.QLOO_CACHE_MAX_ENTRIES,
+    qlooRateLimitPerMinute: cfg.QLOO_RATE_LIMIT_PER_MINUTE,
     artistProviderOrder: cfg.MEDIA_ARTIST_PROVIDER_ORDER as ArtistImageProvider[],
     albumProviderOrder: cfg.MEDIA_ALBUM_PROVIDER_ORDER as AlbumImageProvider[],
     mediaHttpTimeoutMs: cfg.MEDIA_HTTP_TIMEOUT_MS,
@@ -134,4 +184,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     mediaNegativeCacheTtlMs: cfg.MEDIA_NEGATIVE_CACHE_TTL_MS,
     mediaCacheMaxEntries: cfg.MEDIA_CACHE_MAX_ENTRIES
   };
+}
+
+function parseTrustProxy(value: string): boolean | number | string[] {
+  const v = value.trim();
+  if (v === "" || v.toLowerCase() === "false") return false;
+  if (/^\d+$/.test(v)) return Number(v);
+  return v.split(",").map((part) => part.trim()).filter(Boolean);
 }

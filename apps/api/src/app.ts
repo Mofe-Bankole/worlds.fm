@@ -8,9 +8,11 @@ import { TheAudioDbAdapter } from "./integrations/theaudiodb/index.js";
 import { FanartAdapter } from "./integrations/fanart/index.js";
 import { MusicBrainzAdapter } from "./integrations/musicbrainz/index.js";
 import { CoverArtArchiveAdapter } from "./integrations/coverartarchive/index.js";
+import { QlooAdapter } from "./integrations/qloo/index.js";
 import { MediaResolver } from "./services/media-resolver.js";
 import { healthRoutes } from "./routes/health.js";
 import { mediaRoutes } from "./routes/media.js";
+import { qlooRoutes } from "./routes/qloo.js";
 
 export interface BuildAppOptions {
   config?: AppConfig;
@@ -25,7 +27,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const app = Fastify({
     logger: options.logger ?? { level: config.logLevel },
     requestIdHeader: "x-request-id",
-    trustProxy: true
+    trustProxy: config.trustProxy as unknown as NonNullable<FastifyServerOptions["trustProxy"]>
   });
 
   await app.register(cors, {
@@ -60,6 +62,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const resolver = buildMediaResolver(config, options.fetchFn);
   await app.register(healthRoutes);
   await app.register(mediaRoutes, { resolver });
+  await app.register(qlooRoutes, {
+    adapter: buildQlooAdapter(config, options.fetchFn),
+    rateLimitPerMinute: config.qlooRateLimitPerMinute
+  });
 
   return app;
 }
@@ -105,5 +111,24 @@ function buildMediaResolver(config: AppConfig, fetchFn?: FetchLike): MediaResolv
     }),
     musicBrainz: new MusicBrainzAdapter({ http: musicBrainzHttp, cache: cacheOptions }),
     coverArt: new CoverArtArchiveAdapter({ http: providerHttp, cache: cacheOptions })
+  });
+}
+
+function buildQlooAdapter(config: AppConfig, fetchFn?: FetchLike): QlooAdapter {
+  return new QlooAdapter({
+    http: new ProviderHttpClient({
+      ...(fetchFn !== undefined ? { fetchFn } : {}),
+      timeoutMs: config.qlooHttpTimeoutMs,
+      retries: config.qlooHttpRetries,
+      retryBaseDelayMs: config.mediaHttpRetryBaseMs,
+      userAgent: config.mediaUserAgent
+    }),
+    baseUrl: config.qlooApiBaseUrl,
+    apiKey: config.qlooApiKey,
+    cache: {
+      ttlMs: config.qlooCacheTtlMs,
+      negativeTtlMs: config.qlooNegativeCacheTtlMs,
+      maxEntries: config.qlooCacheMaxEntries
+    }
   });
 }
