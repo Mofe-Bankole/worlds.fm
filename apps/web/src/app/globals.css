@@ -3,6 +3,22 @@
 @import "../styles/typography.css";
 @import "../styles/surfaces.css";
 
+@layer base {
+  /* Tailwind v4's preflight no longer sets `cursor: pointer` on buttons, so
+     every clickable control fell back to the default arrow. Restore the
+     affordance in one place instead of repeating `cursor-pointer` per
+     component; utilities still win because they come later in the cascade. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 /* Design tokens live in src/styles/tokens.css. Keyframes for the existing
    (pre-blueprint) page stay here until Phase 1 replaces those components. */
 
