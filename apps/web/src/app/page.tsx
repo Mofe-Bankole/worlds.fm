@@ -6,6 +6,7 @@ import { FeatureBento } from "@/components/sections/feature-bento";
 import { FinalCta } from "@/components/sections/final-cta";
 import { Hero } from "@/components/sections/hero";
 import { HowItWorks } from "@/components/sections/how-it-works";
+import { LandingOrbit } from "@/components/sections/landing-orbit";
 import { LandingStateProvider } from "@/components/sections/landing-state";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { SiteNav } from "@/components/sections/site-nav";
@@ -20,6 +21,7 @@ export default function Home() {
         >
           Skip to content
         </a>
+        <LandingOrbit />
         <SiteNav />
         <main id="main">
           <Hero />

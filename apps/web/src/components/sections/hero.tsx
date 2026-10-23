@@ -3,11 +3,14 @@
 import { SearchBar } from "@/components/search-bar";
 import { useExplorer } from "@/components/explorer-context";
 import { ContourField } from "@/components/primitives/contour-field";
-import { HERO_CONTENT, EXAMPLE_SEARCHES } from "@/content/landing";
-import { ArtistCarousel } from "./artist-carousel";
+import { HERO_CONTENT, EXAMPLE_SEARCHES, ORBIT_ARTISTS } from "@/content/landing";
+import { useArtistImages } from "@/lib/use-artist-images";
+import { FeaturedCarousel } from "./artist-carousel";
 
 export function Hero() {
   const { explore } = useExplorer();
+  // Shares one batch lookup with the edge wheels (LandingOrbit).
+  const images = useArtistImages(ORBIT_ARTISTS);
 
   return (
     <section
@@ -60,7 +63,7 @@ export function Hero() {
       </div>
 
       <div className="mt-16 sm:mt-20">
-        <ArtistCarousel />
+        <FeaturedCarousel images={images} />
       </div>
     </section>
   );

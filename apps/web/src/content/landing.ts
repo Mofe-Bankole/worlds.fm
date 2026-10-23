@@ -12,6 +12,7 @@
  *   real, reviewed submission and editorial content needs its own citations.
  */
 import { NON_AFFILIATION_NOTICE } from "@/lib/brand";
+import { FEATURED_QUERIES } from "./featured-worlds";
 import { SOURCES, type SourceId } from "./sources";
 import type {
   ArtistCard,
@@ -231,6 +232,9 @@ export const ARTISTS: readonly ArtistCard<SourceId>[] = [
 export const EXAMPLE_SEARCHES: readonly string[] = ARTISTS.map(
   (artist) => artist.name,
 );
+
+/** Artists pictured on the edge wheels and the featured carousel. Images come from Qloo at runtime. */
+export const ORBIT_ARTISTS: readonly string[] = FEATURED_QUERIES;
 
 export const FEATURE_PANELS = [
   {

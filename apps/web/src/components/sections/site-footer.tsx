@@ -73,7 +73,7 @@ export function SiteFooter() {
             ))}
             {credits.length === 0 ? (
               <li className="text-text-3">
-                No photographs are in use yet. Artwork shown is placeholder.
+                Artist images are supplied by Qloo at runtime. Other artwork is placeholder.
               </li>
             ) : (
               credits.map((credit) => (
