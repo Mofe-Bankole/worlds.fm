@@ -13,6 +13,8 @@ import { MediaResolver } from "./services/media-resolver.js";
 import { healthRoutes } from "./routes/health.js";
 import { mediaRoutes } from "./routes/media.js";
 import { qlooRoutes } from "./routes/qloo.js";
+import { graphRoutes } from "./routes/graph.js";
+import { CulturalDiscoveryService } from "./services/cultural-discovery.js";
 
 export interface BuildAppOptions {
   config?: AppConfig;
@@ -62,9 +64,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const resolver = buildMediaResolver(config, options.fetchFn);
   await app.register(healthRoutes);
   await app.register(mediaRoutes, { resolver });
+  const qlooAdapter = buildQlooAdapter(config, options.fetchFn);
   await app.register(qlooRoutes, {
-    adapter: buildQlooAdapter(config, options.fetchFn),
+    adapter: qlooAdapter,
     rateLimitPerMinute: config.qlooRateLimitPerMinute
+  });
+  await app.register(graphRoutes, {
+    service: new CulturalDiscoveryService({
+      adapter: qlooAdapter,
+      cache: {
+        ttlMs: config.qlooCacheTtlMs,
+        negativeTtlMs: config.qlooNegativeCacheTtlMs,
+        maxEntries: config.qlooCacheMaxEntries
+      }
+    }),
+    rateLimitPerMinute: config.graphRateLimitPerMinute
   });
 
   return app;

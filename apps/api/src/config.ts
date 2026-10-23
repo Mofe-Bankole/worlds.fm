@@ -90,6 +90,8 @@ const envSchema = z.object({
   QLOO_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).default(500),
   /** Per-client request cap for /api/v1/qloo/* (each request may spend quota). */
   QLOO_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(20),
+  /** Graph explorations cost up to four Qloo requests each. */
+  GRAPH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(10),
 
   MEDIA_ARTIST_PROVIDER_ORDER: providerOrderSchema(ARTIST_IMAGE_PROVIDERS).prefault(
     "theaudiodb,fanart"
@@ -133,6 +135,7 @@ export interface AppConfig {
   qlooNegativeCacheTtlMs: number;
   qlooCacheMaxEntries: number;
   qlooRateLimitPerMinute: number;
+  graphRateLimitPerMinute: number;
   artistProviderOrder: ArtistImageProvider[];
   albumProviderOrder: AlbumImageProvider[];
   mediaHttpTimeoutMs: number;
@@ -174,6 +177,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     qlooNegativeCacheTtlMs: cfg.QLOO_NEGATIVE_CACHE_TTL_MS,
     qlooCacheMaxEntries: cfg.QLOO_CACHE_MAX_ENTRIES,
     qlooRateLimitPerMinute: cfg.QLOO_RATE_LIMIT_PER_MINUTE,
+    graphRateLimitPerMinute: cfg.GRAPH_RATE_LIMIT_PER_MINUTE,
     artistProviderOrder: cfg.MEDIA_ARTIST_PROVIDER_ORDER as ArtistImageProvider[],
     albumProviderOrder: cfg.MEDIA_ALBUM_PROVIDER_ORDER as AlbumImageProvider[],
     mediaHttpTimeoutMs: cfg.MEDIA_HTTP_TIMEOUT_MS,
