@@ -16,6 +16,7 @@ import { useArtistGraph } from "@/lib/explorer/use-artist-graph";
 import { useArtistImages } from "@/lib/use-artist-images";
 import { FEATURED_QUERIES } from "@/content/featured-worlds";
 import { cn } from "@/lib/cn";
+import { Discography } from "@/components/music/discography";
 import { ArtistSearchForm } from "./artist-search-form";
 import { Constellation } from "./constellation";
 import { Filters } from "./filters";
@@ -236,6 +237,7 @@ function GraphView({
           )}
         </div>
       </div>
+      <Discography artistName={root.name} onSearchName={onSearchName} />
     </div>
   );
 }
