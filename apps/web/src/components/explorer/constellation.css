@@ -1,0 +1,127 @@
+/* Living Constellation motion. Everything here is decoration: it is removed
+   entirely under prefers-reduced-motion, and no state depends on it. */
+
+.constellation-ring {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: constellation-spin 140s linear infinite;
+}
+.constellation-ring[data-reverse="true"] {
+  animation-direction: reverse;
+  animation-duration: 200s;
+}
+
+.constellation-star {
+  animation: twinkle 7s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.9s);
+}
+
+.constellation-enter {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: constellation-in 700ms var(--ease-expo-out) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+
+.constellation-edge {
+  animation: constellation-fade 800ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 55ms + 60ms);
+}
+
+.constellation-float {
+  animation: constellation-bob 9s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -1.3s);
+}
+
+.constellation-halo {
+  animation: pulseGlow 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.constellation-node {
+  cursor: pointer;
+  outline: none;
+}
+.constellation-node .node-ring {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.constellation-node:hover .node-ring,
+.constellation-node:focus-visible .node-ring {
+  opacity: 0.9;
+}
+.constellation-node[aria-pressed="true"] .node-ring {
+  opacity: 1;
+}
+.constellation-node:focus-visible .node-ring {
+  stroke: var(--color-electric);
+  stroke-width: 3;
+}
+.constellation-label {
+  paint-order: stroke;
+  stroke: var(--color-night);
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+
+@keyframes constellation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes constellation-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes constellation-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes constellation-bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -5px, 0);
+  }
+}
+
+.constellation-image {
+  filter: saturate(0.9) contrast(1.05);
+}
+.constellation-node:hover .constellation-image,
+.constellation-node[aria-pressed="true"] .constellation-image {
+  filter: none;
+}
+
+/* Small screens: images identify nodes; only the root and the selected node
+   keep a text label so names stay legible instead of shrinking. */
+@media (max-width: 639px) {
+  .constellation-node[data-root="false"] .constellation-label {
+    display: none;
+  }
+  .constellation-node[data-root="false"][aria-pressed="true"] .constellation-label {
+    display: inline;
+    font-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .constellation-ring,
+  .constellation-star,
+  .constellation-enter,
+  .constellation-edge,
+  .constellation-float,
+  .constellation-halo {
+    animation: none !important;
+  }
+}

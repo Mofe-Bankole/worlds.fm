@@ -50,7 +50,7 @@
 
   /* Radii. Tailwind's own sm/md/lg/xl scale is left untouched; blueprint radii
      get semantic names so existing utilities do not change size. */
-  --radius-panel: 1.75rem; /* bento panels and cards (28px) */
+  --radius-panel: 0; /* panels and cards are square-cornered */
   --radius-field: 2.25rem; /* search field (36px) */
   --radius-4xl: 2rem;
 

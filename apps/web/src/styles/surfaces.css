@@ -107,3 +107,202 @@
     -webkit-text-fill-color: currentColor;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Signal cards (square, editorial) and striped media.
+--------------------------------------------------------------------------- */
+@layer components {
+  .signal-card {
+    --card-bg: var(--color-surface-1);
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--color-line);
+  }
+  .signal-card[data-tone="forest"] {
+    --card-bg: color-mix(in oklab, var(--color-forest) 62%, var(--color-night));
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-forest) 38%, var(--color-night)) 0%,
+      var(--card-bg) 100%
+    );
+    border-color: color-mix(in oklab, var(--color-mint) 14%, transparent);
+  }
+
+  .striped-media__bars {
+    -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 3px, rgb(0 0 0 / 0.28) 3px 5px);
+    mask-image: repeating-linear-gradient(90deg, #000 0 3px, rgb(0 0 0 / 0.28) 3px 5px);
+  }
+  .striped-media__fade {
+    background: linear-gradient(to bottom, transparent, var(--card-bg, var(--color-surface-1)));
+  }
+  /* Bars drawn as a pattern for entities without an image. */
+  .striped-fill {
+    background:
+      repeating-linear-gradient(90deg, currentColor 0 3px, transparent 3px 7px);
+  }
+
+  /* -------------------------------------------------------------------------
+     Orbit edges: image dials that peek in from the page sides.
+  ------------------------------------------------------------------------- */
+  .orbit-edges {
+    --orbit-size: min(118vh, 1100px);
+    --orbit-item: 5.5rem;
+    --orbit-visible: clamp(3.5rem, calc((100vw - var(--orbit-content, 64rem)) / 2 + 1rem), 12rem);
+    /* Room left beside wide content; zero (wheel fully off-screen) when there is none. */
+    --orbit-visible-retracted: clamp(0px, calc((100vw - var(--orbit-retract, 80rem)) / 2 - 0.75rem), 6rem);
+    --orbit-shift: calc(var(--orbit-visible) - var(--orbit-visible-retracted));
+    -webkit-mask-image: linear-gradient(to bottom, transparent 6%, #000 32%, #000 68%, transparent 94%);
+    mask-image: linear-gradient(to bottom, transparent 6%, #000 32%, #000 68%, transparent 94%);
+  }
+  .orbit-wheel {
+    position: absolute;
+    top: 50%;
+    width: var(--orbit-size);
+    height: var(--orbit-size);
+    margin-top: calc(var(--orbit-size) / -2);
+    transition:
+      transform 1100ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 1100ms ease;
+  }
+  .orbit-edges[data-retracted="true"] .orbit-wheel {
+    opacity: 0.75;
+  }
+  .orbit-edges[data-retracted="true"] .orbit-wheel[data-side="left"] {
+    transform: translateX(calc(-1 * var(--orbit-shift)));
+  }
+  .orbit-edges[data-retracted="true"] .orbit-wheel[data-side="right"] {
+    transform: translateX(var(--orbit-shift));
+  }
+  .orbit-wheel[data-side="left"] {
+    left: calc(var(--orbit-visible) - var(--orbit-size));
+  }
+  .orbit-wheel[data-side="right"] {
+    right: calc(var(--orbit-visible) - var(--orbit-size));
+  }
+  .orbit-wheel__band {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 1px solid var(--color-line);
+    background: radial-gradient(
+      closest-side,
+      transparent calc(100% - var(--orbit-item) - 2.25rem),
+      color-mix(in oklab, var(--color-surface-1) 85%, transparent) calc(100% - var(--orbit-item) - 2.25rem)
+    );
+  }
+  .orbit-wheel__spin {
+    position: absolute;
+    inset: 0;
+    animation: orbit-spin 150s linear infinite;
+  }
+  .orbit-wheel[data-side="right"] .orbit-wheel__spin,
+  .orbit-wheel[data-side="right"] .orbit-wheel__item {
+    animation-direction: reverse;
+  }
+  .orbit-wheel__slot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--orbit-item);
+    height: var(--orbit-item);
+    margin: calc(var(--orbit-item) / -2) 0 0 calc(var(--orbit-item) / -2);
+    transform: rotate(var(--a))
+      translateX(calc(var(--orbit-size) / 2 - var(--orbit-item) / 2 - 1.1rem))
+      rotate(calc(-1 * var(--a)));
+  }
+  .orbit-wheel__item {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: var(--color-surface-2);
+    box-shadow: 0 0 0 1px var(--color-line-strong);
+    filter: grayscale(0.35) contrast(1.05);
+    /* Counter-rotates so images stay upright while the wheel turns. */
+    animation: orbit-spin 150s linear infinite reverse;
+  }
+  .orbit-wheel[data-side="right"] .orbit-wheel__item {
+    animation-direction: normal;
+  }
+  @keyframes orbit-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .orbit-wheel__spin,
+    .orbit-wheel__item {
+      animation: none !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Featured worlds carousel.
+--------------------------------------------------------------------------- */
+@layer components {
+  .featured-track {
+    --card-w: min(84vw, 25rem);
+    padding-inline: calc(50% - var(--card-w) / 2);
+  }
+  .featured-track > li {
+    width: var(--card-w);
+  }
+  .featured-card {
+    transition:
+      filter 500ms ease,
+      transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* Dimmed with a filter rather than opacity so the cards stay opaque over the wheels. */
+  .featured-track > li:not([data-active="true"]) .featured-card {
+    filter: brightness(0.6) saturate(0.65);
+    transform: scale(0.965);
+  }
+  .featured-track > li:not([data-active="true"]):hover .featured-card,
+  .featured-track > li:not([data-active="true"]):focus-within .featured-card {
+    filter: brightness(0.85) saturate(0.85);
+  }
+  .featured-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.375rem;
+    height: fit-content;
+    border: 1px solid var(--color-line-strong);
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-text-2);
+  }
+  .featured-progress__fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(0);
+    background: var(--color-electric);
+  }
+  .featured-progress__fill[data-state="done"] {
+    transform: scaleX(1);
+    background: var(--color-line-strong);
+  }
+  .featured-progress__fill[data-state="current"] {
+    transform: scaleX(1);
+  }
+  .featured-progress__fill[data-state="timing"] {
+    animation: featured-progress var(--featured-ms, 7000ms) linear forwards;
+  }
+  @keyframes featured-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
