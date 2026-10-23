@@ -1,6 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { qlooInsightsResponseSchema, qlooSearchResponseSchema } from "@worlds/shared";
+import {
+  qlooArtistImagesResponseSchema,
+  qlooInsightsResponseSchema,
+  qlooSearchResponseSchema
+} from "@worlds/shared";
 
 import { buildTestApp } from "./helpers.js";
 import {
@@ -502,5 +506,110 @@ describe("route rate limiting", () => {
     for (let i = 0; i < 3; i += 1) {
       expect((await app.inject("/health")).statusCode).toBe(200);
     }
+  });
+});
+
+describe("Qloo entity images", () => {
+  it("keeps HTTPS images on the Qloo image host and drops anything else", async () => {
+    const { app } = await makeApp({
+      handlers: [
+        {
+          match: isSearch,
+          respond: () =>
+            jsonResponse(
+              searchBody([
+                entity({ properties: { image: { url: "https://images.qloo.com/i/mock-420x-auto.jpg" } } }),
+                entity({
+                  name: "Mock Artist Two",
+                  entity_id: OTHER_ID,
+                  properties: { image: { url: "https://evil.example.com/x.jpg" } }
+                }),
+                entity({
+                  name: "Mock Artist Three",
+                  entity_id: BRAND_ID,
+                  properties: { image: { url: "http://images.qloo.com/i/x.jpg" } }
+                })
+              ])
+            )
+        }
+      ]
+    });
+    const body = qlooSearchResponseSchema.parse(
+      (await app.inject("/api/v1/qloo/search?query=Mock%20Artist")).json()
+    );
+    expect(body.results.map((r) => r.imageUrl)).toEqual([
+      "https://images.qloo.com/i/mock-420x-auto.jpg",
+      null,
+      null
+    ]);
+  });
+});
+
+describe("GET /api/v1/qloo/artist-images", () => {
+  const img = (n: string) => `https://images.qloo.com/i/${n}.jpg`;
+
+  it("returns exact-match images for several names in one request", async () => {
+    const { app, calls } = await makeApp({
+      handlers: [
+        {
+          match: (url) => isSearch(url) && url.includes("query=Mock+Artist&"),
+          respond: () => jsonResponse(searchBody([entity({ properties: { image: { url: img("a") } } })]))
+        },
+        {
+          match: (url) => isSearch(url) && url.includes("query=Other"),
+          respond: () =>
+            jsonResponse(searchBody([entity({ name: "Other Band", entity_id: OTHER_ID, properties: { image: { url: img("b") } } })]))
+        },
+        {
+          match: (url) => isSearch(url) && url.includes("query=Fuzzy"),
+          respond: () => jsonResponse(searchBody([entity({ name: "Fuzzy Match Band", entity_id: BRAND_ID })]))
+        }
+      ]
+    });
+    const res = await app.inject("/api/v1/qloo/artist-images?names=Mock%20Artist,Other%20Band,Fuzzy,mock%20artist");
+    expect(res.statusCode).toBe(200);
+    const body = qlooArtistImagesResponseSchema.parse(res.json());
+    expect(body.images).toEqual([
+      { name: "Mock Artist", imageUrl: img("a") },
+      { name: "Other Band", imageUrl: img("b") },
+      { name: "Fuzzy", imageUrl: null }
+    ]);
+    expect(res.headers["cache-control"]).toContain("public, max-age=3600");
+    // The case-insensitive duplicate is not searched twice.
+    expect(calls.filter((c) => isSearch(c.url))).toHaveLength(3);
+  });
+
+  it("returns null for a failed name instead of failing the batch, and is not cached", async () => {
+    const { app } = await makeApp({
+      handlers: [
+        {
+          match: (url) => isSearch(url) && url.includes("query=Mock+Artist&"),
+          respond: () => jsonResponse(searchBody([entity({ properties: { image: { url: img("a") } } })]))
+        },
+        { match: (url) => isSearch(url) && url.includes("query=Broken"), respond: () => statusResponse(500) }
+      ]
+    });
+    const res = await app.inject("/api/v1/qloo/artist-images?names=Mock%20Artist,Broken");
+    expect(res.statusCode).toBe(200);
+    expect(res.json().images).toEqual([
+      { name: "Mock Artist", imageUrl: img("a") },
+      { name: "Broken", imageUrl: null }
+    ]);
+    expect(res.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("maps a total failure to the usual error envelope", async () => {
+    const { app } = await makeApp({ handlers: [{ match: isSearch, respond: () => statusResponse(500) }] });
+    const res = await app.inject("/api/v1/qloo/artist-images?names=A,B");
+    expect(res.statusCode).toBeGreaterThanOrEqual(500);
+    expect(res.json().error.code).toMatch(/^qloo_/);
+  });
+
+  it("rejects empty and oversized batches", async () => {
+    const { app } = await makeApp({ handlers: [] });
+    expect((await app.inject("/api/v1/qloo/artist-images?names=,%20,")).statusCode).toBe(400);
+    const many = Array.from({ length: 13 }, (_, i) => `Artist ${i}`).join(",");
+    expect((await app.inject(`/api/v1/qloo/artist-images?names=${encodeURIComponent(many)}`)).statusCode).toBe(400);
+    expect((await app.inject("/api/v1/qloo/artist-images")).statusCode).toBe(400);
   });
 });

@@ -31,6 +31,9 @@ export const qlooEntityTypeSchema = z.enum(QLOO_ENTITY_TYPES);
 export type QlooEntityType = z.infer<typeof qlooEntityTypeSchema>;
 
 export const QLOO_MAX_QUERY_LENGTH = 100;
+
+/** The only host Qloo image URLs are accepted from (observed live 2026-10-23). */
+export const QLOO_IMAGE_HOST = "images.qloo.com";
 export const QLOO_SEARCH_MAX_RESULTS = 10;
 export const QLOO_INSIGHTS_MAX_RESULTS = 20;
 
@@ -66,7 +69,9 @@ export const qlooEntitySchema = z.object({
   popularity: z.number().nullable(),
   description: z.string().nullable(),
   disambiguation: z.string().nullable(),
-  tags: z.array(qlooTagSchema)
+  tags: z.array(qlooTagSchema),
+  /** Qloo-hosted image (`properties.image.url`), HTTPS on {@link QLOO_IMAGE_HOST} only. */
+  imageUrl: z.url().nullable().optional()
 });
 export type QlooEntity = z.infer<typeof qlooEntitySchema>;
 
@@ -121,3 +126,42 @@ export type QlooInsightsResponse = z.infer<typeof qlooInsightsResponseSchema>;
 
 export const QLOO_AFFINITY_NOTICE =
   "Cultural affinity signal from Qloo. It is not evidence of history, inspiration, ownership, attendance or causation, and places and destinations are cultural recommendations, not verified locations, and it is not the probability that an individual will like an item.";
+
+/** Most artist names one image batch may ask for. */
+export const QLOO_IMAGE_BATCH_MAX = 12;
+
+/**
+ * `names` is a comma-separated list. Names are trimmed and de-duplicated
+ * case-insensitively; order is kept.
+ */
+export const qlooArtistImagesQuerySchema = z.object({
+  names: z
+    .string()
+    .transform((raw) => {
+      const seen = new Set<string>();
+      return raw
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => {
+          const key = name.toLowerCase();
+          if (!name || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    })
+    .pipe(z.array(z.string().max(QLOO_MAX_QUERY_LENGTH)).min(1).max(QLOO_IMAGE_BATCH_MAX))
+});
+export type QlooArtistImagesQuery = z.infer<typeof qlooArtistImagesQuerySchema>;
+
+export const qlooArtistImageSchema = z.object({
+  /** The name as requested. */
+  name: z.string().min(1),
+  /** Image of the exact-name match. Null when there is no exact match or no image. */
+  imageUrl: z.url().nullable()
+});
+
+export const qlooArtistImagesResponseSchema = z.object({
+  images: z.array(qlooArtistImageSchema),
+  provenance: qlooProvenanceSchema
+});
+export type QlooArtistImagesResponse = z.infer<typeof qlooArtistImagesResponseSchema>;

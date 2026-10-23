@@ -64,6 +64,7 @@ function toNode(entity: QlooEntity): CulturalNode {
     ].sort(compareText),
     // Affinity results never carry coordinates; geo needs independent sources.
     geo: null,
+    image: entity.imageUrl ? { url: entity.imageUrl, provider: "qloo" } : null,
     expansion: eligible
       ? {
           eligible: true,

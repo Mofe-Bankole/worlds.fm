@@ -263,3 +263,23 @@ describe("buildCulturalGraph (mock fixtures, no network)", () => {
     expect(buildCulturalGraph(input)).toEqual(buildCulturalGraph(input));
   });
 });
+
+describe("node images", () => {
+  it("passes a Qloo image through and leaves missing images null", () => {
+    const withImage = entity({
+      id: "EEEEEEEE-0000-4000-8000-000000000005",
+      name: "Mock Artist E",
+      imageUrl: "https://images.qloo.com/i/mock.jpg"
+    });
+    const graph = buildCulturalGraph({
+      root,
+      insights: [insights("artist", [{ entity: withImage, affinity: 0.9 }, { entity: destD, affinity: 0.8 }])]
+    });
+    expect(graph.nodes.find((n) => n.name === "Mock Artist E")?.image).toEqual({
+      url: "https://images.qloo.com/i/mock.jpg",
+      provider: "qloo"
+    });
+    expect(graph.nodes.find((n) => n.name === "Mock Destination D")?.image).toBeNull();
+    expect(graph.nodes[0]?.image).toBeNull();
+  });
+});

@@ -17,6 +17,7 @@ The builder is a pure function. It performs no I/O, so the same input and option
 | `provider`, `externalId` | Provider and its original ID, preserved exactly as received. |
 | `description`, `popularity`, `tags` | Optional provider metadata. `popularity` is not an affinity. |
 | `geo` | `null` unless independently verified with a cited source URL. The builder always sets `null`. |
+| `image` | `{ url, provider: "qloo" }` from Qloo `properties.image.url`, accepted only as HTTPS on `images.qloo.com`; otherwise `null`. Illustrates the entity only, never evidence for a link. Qloo returned images for artists and brands but not destinations (observed live 2026-10-23). |
 | `expansion` | `eligible`, `reason`, `targetCategories`. Only artists are eligible: that is what B1.1 confirmed live. |
 
 `CulturalEdge`

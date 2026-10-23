@@ -66,6 +66,16 @@ export const nodeExpansionSchema = z.object({
 });
 export type NodeExpansion = z.infer<typeof nodeExpansionSchema>;
 
+/**
+ * A display image supplied by the provider for the entity itself. It
+ * illustrates the node only; it is not evidence for any relationship.
+ */
+export const nodeImageSchema = z.object({
+  url: z.url(),
+  provider: culturalProviderSchema
+});
+export type NodeImage = z.infer<typeof nodeImageSchema>;
+
 export const culturalNodeSchema = z.object({
   /** `<provider>:<lowercased external id>`. Stable across requests. */
   id: z.string().min(1),
@@ -80,6 +90,8 @@ export const culturalNodeSchema = z.object({
   /** Provider tag names, kept for category filtering. */
   tags: z.array(z.string()),
   geo: verifiedGeoSchema.nullable(),
+  /** Null when the provider supplied no image. Never substituted or guessed. */
+  image: nodeImageSchema.nullable(),
   expansion: nodeExpansionSchema
 });
 export type CulturalNode = z.infer<typeof culturalNodeSchema>;

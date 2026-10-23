@@ -1,5 +1,6 @@
 import {
   QLOO_AFFINITY_NOTICE,
+  QLOO_IMAGE_HOST,
   type QlooEntity,
   type QlooEntityType,
   type QlooInsightsResponse,
@@ -62,7 +63,8 @@ const qlooEntityPayloadSchema = z.looseObject({
   properties: z
     .looseObject({
       description: z.string().nullish(),
-      short_description: z.string().nullish()
+      short_description: z.string().nullish(),
+      image: z.looseObject({ url: z.string().nullish() }).nullish()
     })
     .nullish(),
   tags: z.array(z.unknown()).nullish(),
@@ -258,8 +260,20 @@ function toEntity(payload: QlooEntityPayload): QlooEntity {
     description:
       payload.properties?.description ?? payload.properties?.short_description ?? null,
     disambiguation: payload.disambiguation ?? null,
-    tags: tags.slice(0, MAX_TAGS_PER_ENTITY)
+    tags: tags.slice(0, MAX_TAGS_PER_ENTITY),
+    imageUrl: qlooImageUrl(payload.properties?.image?.url)
   };
+}
+
+/** Accepts only HTTPS URLs on the Qloo image host; anything else becomes null. */
+export function qlooImageUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" && url.hostname === QLOO_IMAGE_HOST ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Stable sort: exact normalized-name matches first, upstream order otherwise. */

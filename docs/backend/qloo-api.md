@@ -91,6 +91,34 @@ Exact normalized-name matches rank first. A fuzzy neighbour never produces a
 }
 ```
 
+### `GET /api/v1/qloo/artist-images?names=Avicii,Rihanna`
+
+Artist images for decoration (landing wheels, featured carousel, explorer edges), in one request
+instead of one search per name.
+
+- `names`: comma-separated, 1–12 after trimming and case-insensitive de-duplication; each name 1–100 chars.
+  A name containing a comma cannot be sent.
+- Each name runs the cached artist search; only an `exact` match yields an image. A failed lookup
+  for one name gives `imageUrl: null`; if every lookup fails, the usual Qloo error is returned.
+- Counts as **one** request against the `/api/v1/qloo/*` rate limit.
+- `cache-control: public, max-age=3600, stale-while-revalidate=86400` when every lookup succeeded,
+  `no-store` when some failed, so a retry can fill the gaps.
+
+```jsonc
+{
+  "images": [
+    { "name": "Avicii", "imageUrl": "https://images.qloo.com/i/…" },
+    { "name": "Rihanna", "imageUrl": null }
+  ],
+  "provenance": { /* as above */ }
+}
+```
+
+The web client (`fetchArtistImages` in `apps/web/src/lib/api/discovery.ts`) sorts the names so the
+same set always produces the same URL and hits the browser cache, shares in-flight batches between
+components, and keeps found image URLs in `localStorage` for seven days (at most 200 entries), so
+returning visitors skip the request entirely. Image bytes stay in the browser's HTTP cache.
+
 ## Errors
 
 All errors use the standard envelope `{ "error": { "code", "message", "requestId" } }`.
@@ -113,7 +141,7 @@ Messages are fixed strings; upstream bodies, URLs and headers are never echoed.
 ## Safeguards
 
 - Client IPs for rate limiting come from the socket unless `TRUST_PROXY` names trusted proxies (hop count or IP/CIDR list). `TRUST_PROXY=true` is rejected, so spoofed `X-Forwarded-For` headers cannot evade the limit. Set it to your platform's hop count when deployed behind a proxy.
-- Result counts are capped (search 10, insights 20), queries are capped at 100 characters, and entity types are an allow-list.
+- Result counts are capped (search 10, insights 20, image batch 12 names), queries are capped at 100 characters, and entity types are an allow-list.
 - Responses are cached privately in memory; repeated lookups do not spend quota.
 - `/api/v1/qloo/*` is rate limited per client IP (`trustProxy` is on, so run the API behind a proxy that sets `X-Forwarded-For` and does not let clients forge it). These are integration routes; put authentication in front before public launch.
 - The key travels only in the `X-Api-Key` header, is never logged, and never appears in a URL or response (covered by tests).
