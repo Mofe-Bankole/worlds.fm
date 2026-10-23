@@ -3,6 +3,7 @@
 import type { CulturalEdge, CulturalGraph, CulturalNode } from "@worlds/shared";
 import { SignalAction, SignalCard } from "@/components/primitives/signal-card";
 import { StripedImage } from "@/components/primitives/striped-image";
+import { ShareControl } from "@/components/share/share-control";
 import { CATEGORY_META, describeCounts, firstSentence, formatAffinity } from "@/lib/explorer/model";
 import { CategoryIcon } from "./shape-icon";
 import { NodeShape } from "./constellation";
@@ -69,7 +70,14 @@ export function RootCard({
         </>
       }
       action={
-        <SignalAction onClick={onToggleView}>{view === "constellation" ? "View as a list" : "View the constellation"}</SignalAction>
+        <div className="space-y-3">
+          {/* The World is addressed by the resolved artist name, so a shared
+              link reopens this same world rather than the raw search text. */}
+          <ShareControl name={node.name} />
+          <SignalAction onClick={onToggleView}>
+            {view === "constellation" ? "View as a list" : "View the constellation"}
+          </SignalAction>
+        </div>
       }
     >
       {summary ? <p className="type-small text-text-2">{summary}</p> : null}
@@ -125,9 +133,16 @@ export function NodeCard({
       }
       action={
         node.category === "artist" ? (
-          <div className="space-y-1.5">
-            <SignalAction onClick={() => onSearchName(node.name)}>Explore {node.name}’s world</SignalAction>
-            <p className="text-[0.6875rem] text-text-3">Starts a new search by name.</p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <SignalAction onClick={() => onSearchName(node.name)}>Explore {node.name}’s world</SignalAction>
+              <p className="text-[0.6875rem] text-text-3">Starts a new search by name.</p>
+            </div>
+            {/* Only artists have a World to open, so only artists are shareable. */}
+            <ShareControl
+              name={node.name}
+              note="Anyone with this link sees this artist’s world. Nothing personal is included."
+            />
           </div>
         ) : null
       }

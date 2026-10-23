@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, JetBrains_Mono, Manrope } from "next/font/google";
 import { BRAND } from "@/lib/brand";
+import { siteUrl } from "@/lib/site";
 import { JsMotionScript } from "@/motion/js-motion-script";
 import "./globals.css";
 
@@ -27,6 +28,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  // Makes relative metadata URLs (canonical, Open Graph images) absolute.
+  metadataBase: new URL(siteUrl()),
   title: "Worlds.fm — Every sound has a world",
   description:
     "Worlds.fm is an AI-powered music and cultural discovery platform. Explore the places, people, festivals, and movements behind the music you love.",
@@ -45,6 +48,17 @@ export const metadata: Metadata = {
       "Discover the places, people, and cultures behind the music you love.",
     siteName: "Worlds.fm",
     type: "website",
+    url: "/",
+    // The site card: /og/world with no name. World pages override this with a
+    // card naming their own artist.
+    images: [{ url: "/og/world", width: 1200, height: 630, alt: "Worlds.fm" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Worlds.fm — Every sound has a world",
+    description:
+      "Discover the places, people, and cultures behind the music you love.",
+    images: ["/og/world"],
   },
 };
 

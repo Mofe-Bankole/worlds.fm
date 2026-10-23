@@ -28,6 +28,7 @@ import {
 } from "@/content/featured-worlds";
 import { usePrefersReducedMotion } from "@/motion/use-motion-preferences";
 import { cn } from "@/lib/cn";
+import { worldPath } from "@/lib/share";
 import { ORBIT_RETRACT_TARGET } from "./landing-orbit";
 
 const HIGHLIGHT_ICON: Record<HighlightType, LucideIcon> = {
@@ -41,7 +42,8 @@ const HIGHLIGHT_ICON: Record<HighlightType, LucideIcon> = {
 const AUTOPLAY_MS = 7000;
 const TOTAL = FEATURED_WORLDS.length;
 const pad = (n: number) => String(n).padStart(2, "0");
-const exploreHref = (world: FeaturedWorld) => `/explore?${new URLSearchParams({ q: world.query })}`;
+/** Built by the share helper so carousel links and share links can never drift apart. */
+const exploreHref = (world: FeaturedWorld) => worldPath(world.query);
 
 /**
  * Featured worlds: a centred, snap-scrolling carousel. Swipe, trackpad, arrow

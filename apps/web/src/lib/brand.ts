@@ -6,6 +6,12 @@
 export const BRAND = {
   night: "#08120B",
   electric: "#00CD37",
+  forest: "#2A6E4C",
+  mint: "#CBF2CD",
+  surface1: "#0E1912",
+  text: "#EEF6EF",
+  text2: "#A3B5A8",
+  text3: "#8AA090",
 } as const;
 
 export const NON_AFFILIATION_NOTICE =
