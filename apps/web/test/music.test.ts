@@ -13,6 +13,7 @@ const discography = (overrides: Record<string, unknown> = {}) => ({
   releases: [],
   counts: { album: 0, ep: 0, single: 0 },
   spotifyStatus: "not_configured",
+  spotifyPending: [],
   notice: "Mock notice.",
   retrievedAt: "2026-10-23T00:00:00.000Z",
   ...overrides,
@@ -30,6 +31,20 @@ describe("music client (stubbed fetch)", () => {
     expect(seen).toEqual([
       "http://api.test/api/v1/music/discography?name=Mock+Band",
       `http://api.test/api/v1/music/discography?mbid=${MBID}`,
+    ]);
+  });
+
+  it("asks for the Spotify singles listing only when asked", async () => {
+    const seen: string[] = [];
+    const fetchFn = (async (url: string) => {
+      seen.push(url);
+      return json(discography());
+    }) as typeof fetch;
+    await fetchDiscography({ name: "Mock Band" }, { baseUrl: "http://api.test", fetchFn });
+    await fetchDiscography({ name: "Mock Band" }, { baseUrl: "http://api.test", fetchFn, include: "all" });
+    expect(seen).toEqual([
+      "http://api.test/api/v1/music/discography?name=Mock+Band",
+      "http://api.test/api/v1/music/discography?name=Mock+Band&include=all",
     ]);
   });
 

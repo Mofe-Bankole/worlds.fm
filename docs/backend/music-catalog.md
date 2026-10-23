@@ -27,6 +27,7 @@ All MusicBrainz callers (media resolver and music catalogue) share one throttled
 - Release groups are browsed with `release-group-status=website-default`, which drops groups that only have bootleg releases (as musicbrainz.org does).
 - Live, compilation, remix and other secondary types are left out; Soundtrack and Mixtape/Street are kept and labelled.
 - Spotify is consulted only through the Spotify artist link MusicBrainz holds. Albums are matched by title (after removing edition, guest and tie-in labels such as "Deluxe Edition" or "feat. X") within one year of the MusicBrainz date. A Spotify failure returns `spotifyStatus: "unavailable"` and keeps the MusicBrainz list.
+- `include` chooses how much Spotify to join. The default, `include=albums`, joins the album listing only, which is one request for most artists. `include=all` also joins the singles listing, which is where Spotify files EPs. Because Spotify caps a listing at ten items per request, singles are the bulk of both the calls and the quota, so they are fetched only when asked for. The response says which kinds were not joined in `spotifyPending`; their releases are still complete, with Cover Art Archive covers.
 
 ### `GET /api/v1/music/releases/:id/tracks?spotifyAlbumId=<id>`
 
@@ -54,6 +55,15 @@ Stable envelope `{ error: { code, message, requestId } }`:
 - `GET /artists/{id}/albums` rejects `limit` above 10, so the adapter reads up to 10 pages of 10 in parallel after the first.
 - Batch endpoints (`GET /albums`, `/tracks`, `/artists`), top tracks and new releases are unavailable; they are not used.
 - Spotify does not list many older singles, so those keep Cover Art Archive covers.
+
+### A spent quota
+
+Spotify reports an exhausted app-wide quota as `429` with `reason: "QUOTA_EXCEEDED"` and a `Retry-After` measured in hours. Waiting for a window that long cannot succeed, so:
+
+- The HTTP client does not retry when `Retry-After` exceeds its retry ceiling; it fails immediately with the window attached to the error.
+- The Spotify adapter then stays quiet for that window (capped at six hours), refusing callers locally instead of spending a request to rediscover the same answer. Cached listings are still served.
+
+Measured live on 2026-10-24, with the quota spent: a discography request took 21 s before this change (three attempts) and 5.1 s after (one attempt, the rest MusicBrainz throttling), and a repeat request answered in 4 ms from cache with no provider call.
 
 ## Tests
 

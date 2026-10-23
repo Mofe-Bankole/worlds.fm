@@ -1,5 +1,6 @@
 import {
   MUSIC_CATALOG_NOTICE,
+  RELEASE_KINDS,
   type Credit,
   type CreditRole,
   type CoverArt,
@@ -29,6 +30,7 @@ import {
   spotifyUrl,
   type SpotifyAdapter,
   type SpotifyAlbum,
+  type SpotifyAlbumScope,
   type SpotifySimpleAlbum
 } from "../integrations/spotify/index.js";
 import type { WikimediaAdapter } from "../integrations/wikimedia/index.js";
@@ -76,6 +78,7 @@ export class MusicCatalogService {
       candidates: [] as DiscographyResponse["candidates"],
       releases: [] as Release[],
       counts: { album: 0, ep: 0, single: 0 },
+      spotifyPending: [] as ReleaseKind[],
       notice: MUSIC_CATALOG_NOTICE,
       retrievedAt: new Date().toISOString()
     };
@@ -114,9 +117,10 @@ export class MusicCatalogService {
         .map((relation) => (relation.url ? spotifyIdFromUrl(relation.url.resource, "artist") : null))
         .find((id): id is string => Boolean(id)) ?? null;
 
+    const scope: SpotifyAlbumScope = query.include === "all" ? "all" : "albums";
     const [groups, spotifyResult] = await Promise.all([
       musicCall(() => this.mb.browseReleaseGroups(artist.id)),
-      this.spotifyAlbums(spotifyArtistId)
+      this.spotifyAlbums(spotifyArtistId, scope)
     ]);
 
     const releases = groups
@@ -131,6 +135,14 @@ export class MusicCatalogService {
     const counts = { album: 0, ep: 0, single: 0 };
     for (const release of releases) counts[release.kind] += 1;
 
+    // Only the album listing was joined, so EPs and singles (which Spotify
+    // lists together, separately from albums) can still gain covers and links
+    // if the caller asks again with `include=all`.
+    const spotifyPending: ReleaseKind[] =
+      scope === "all" || spotifyResult.status !== "linked"
+        ? []
+        : RELEASE_KINDS.filter((kind) => kind !== "album" && counts[kind] > 0);
+
     return {
       ...base,
       status: "ok",
@@ -143,6 +155,7 @@ export class MusicCatalogService {
       },
       releases,
       counts,
+      spotifyPending,
       spotifyStatus: spotifyResult.status
     };
   }
@@ -269,11 +282,14 @@ export class MusicCatalogService {
     };
   }
 
-  private async spotifyAlbums(artistId: string | null): Promise<{ status: SpotifyStatus; albums: SpotifySimpleAlbum[] }> {
+  private async spotifyAlbums(
+    artistId: string | null,
+    scope: SpotifyAlbumScope
+  ): Promise<{ status: SpotifyStatus; albums: SpotifySimpleAlbum[] }> {
     if (!this.spotify.isEnabled) return { status: "not_configured", albums: [] };
     if (!artistId) return { status: "no_spotify_link", albums: [] };
     try {
-      return { status: "linked", albums: await this.spotify.getArtistAlbums(artistId) };
+      return { status: "linked", albums: await this.spotify.getArtistAlbums(artistId, scope) };
     } catch (error) {
       this.warn(error, "spotify artist albums failed");
       return { status: "unavailable", albums: [] };

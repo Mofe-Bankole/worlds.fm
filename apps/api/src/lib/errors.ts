@@ -39,18 +39,26 @@ export class ProviderError extends Error {
   readonly provider: string;
   readonly kind: ProviderErrorKind;
   readonly status: number | undefined;
+  /**
+   * Set on `rate_limited` when the provider said how long to wait. Callers use
+   * it to stop asking for the duration of the window instead of retrying into
+   * a refusal that cannot succeed.
+   */
+  readonly retryAfterMs: number | undefined;
 
   constructor(
     provider: string,
     kind: ProviderErrorKind,
     message: string,
-    status?: number
+    status?: number,
+    retryAfterMs?: number
   ) {
     super(message);
     this.name = "ProviderError";
     this.provider = provider;
     this.kind = kind;
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
 
   /** Short, log-safe detail string surfaced in provider reports. */

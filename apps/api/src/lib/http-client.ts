@@ -97,7 +97,13 @@ export class ProviderHttpClient {
         }
         if (response.status === 429) {
           const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"));
-          if (attempt < attempts - 1) {
+          // A window longer than this request can wait will not open by waiting
+          // for it: retrying only spends more of the caller's time and more
+          // calls against a quota that is already spent. Spotify answers a
+          // spent quota with a Retry-After measured in hours, so stop here and
+          // let the caller decide how long to stay quiet.
+          const worthWaiting = retryAfterMs === undefined || retryAfterMs <= MAX_RETRY_AFTER_MS;
+          if (worthWaiting && attempt < attempts - 1) {
             const waitMs = Math.min(
               Math.max(retryAfterMs ?? 0, this.backoffDelay(attempt)),
               retryAfterMs !== undefined ? MAX_RETRY_AFTER_MS : MAX_BACKOFF_MS
@@ -105,7 +111,13 @@ export class ProviderHttpClient {
             await this.wait(waitMs);
             continue;
           }
-          throw new ProviderError(provider, "rate_limited", `${provider} rate-limited the request`, 429);
+          throw new ProviderError(
+            provider,
+            "rate_limited",
+            `${provider} rate-limited the request`,
+            429,
+            retryAfterMs
+          );
         }
         if (response.status >= 500) {
           throw new RetryableHttpError(response.status);

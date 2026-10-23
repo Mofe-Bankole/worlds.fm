@@ -74,13 +74,17 @@ const spAlbum = (id: string, name: string, type: string, date: string, total: nu
   external_urls: { spotify: `https://open.spotify.com/album/${id}` },
   artists: [{ id: SP_ARTIST, name: "Mock Band" }]
 });
-const spAlbums = {
-  items: [
-    spAlbum(SP_ALBUM, "Mock Album (Deluxe Edition)", "album", "2015-07-17", 2),
-    spAlbum(SP_EP, "Mock EP", "single", "2008-09-22", 3)
-  ],
-  next: null,
-  total: 2
+/**
+ * Spotify files EPs as singles, so its `include_groups=album` listing holds
+ * albums alone and its `include_groups=single` listing holds the EP. The stub
+ * answers per listing, so a test can tell the two apart.
+ */
+const spAlbumListing = (group: string) => {
+  const items =
+    group === "album"
+      ? [spAlbum(SP_ALBUM, "Mock Album (Deluxe Edition)", "album", "2015-07-17", 2)]
+      : [spAlbum(SP_EP, "Mock EP", "single", "2008-09-22", 3)];
+  return { items, next: null, total: items.length };
 };
 const spTrack = (id: string, name: string, n: number, explicit: boolean) => ({
   id,
@@ -202,13 +206,17 @@ const token: Handler = {
   match: (url) => url.startsWith("https://accounts.spotify.com/api/token"),
   respond: () => jsonResponse({ access_token: ACCESS_TOKEN, token_type: "Bearer", expires_in: 3600 })
 };
+const spotifyAlbumListing: Handler = {
+  match: (url) => url.includes(`api.spotify.com/v1/artists/${SP_ARTIST}/albums`),
+  respond: (url) => jsonResponse(spAlbumListing(new URL(url).searchParams.get("include_groups") ?? ""))
+};
 const discographyHandlers = (extra: Handler[] = []): Handler[] => [
   ...extra,
   token,
   on("musicbrainz.org/ws/2/artist/?query=", mbSearch([{ id: ARTIST, name: "Mock Band", score: 100 }])),
   on(`musicbrainz.org/ws/2/artist/${ARTIST}?inc=url-rels`, mbArtist),
   on(`musicbrainz.org/ws/2/release-group?artist=${ARTIST}`, mbGroups),
-  on(`api.spotify.com/v1/artists/${SP_ARTIST}/albums`, spAlbums)
+  spotifyAlbumListing
 ];
 const storyHandlers = (extra: Handler[] = []): Handler[] => [
   ...extra,
@@ -225,12 +233,13 @@ afterEach(async () => {
   apps = [];
 });
 
-async function makeApp(handlers: Handler[], withSpotify = true) {
+async function makeApp(handlers: Handler[], withSpotify = true, env: Record<string, string> = {}) {
   const { fetchFn, calls } = createStubFetch(handlers);
   const app = await buildTestApp({
     env: {
       MEDIA_HTTP_RETRIES: "0",
-      ...(withSpotify ? { SPOTIFY_CLIENT_ID: CLIENT_ID, SPOTIFY_CLIENT_SECRET: CLIENT_SECRET } : {})
+      ...(withSpotify ? { SPOTIFY_CLIENT_ID: CLIENT_ID, SPOTIFY_CLIENT_SECRET: CLIENT_SECRET } : {}),
+      ...env
     },
     fetchFn
   });
@@ -260,22 +269,70 @@ describe("GET /api/v1/music/discography", () => {
     const album = body.releases.find((r) => r.id === RG_ALBUM);
     expect(album?.spotify?.id).toBe(SP_ALBUM);
     expect(album?.cover).toMatchObject({ provider: "spotify", linkUrl: `https://open.spotify.com/album/${SP_ALBUM}` });
-    const ep = body.releases.find((r) => r.id === RG_EP);
-    expect(ep?.kind).toBe("ep");
-    expect(ep?.spotify?.id).toBe(SP_EP);
-    const single = body.releases.find((r) => r.id === RG_SINGLE);
-    expect(single?.spotify).toBeNull();
-    expect(single?.cover).toMatchObject({
-      provider: "coverartarchive",
-      linkUrl: `https://musicbrainz.org/release-group/${RG_SINGLE}`
-    });
+
+    // Spotify lists EPs and singles separately from albums, so this request
+    // joined albums only. It says which kinds can still gain Spotify data.
+    expect(body.spotifyPending).toEqual(["ep", "single"]);
+    for (const id of [RG_EP, RG_SINGLE]) {
+      const release = body.releases.find((r) => r.id === id);
+      expect(release?.spotify).toBeNull();
+      expect(release?.cover).toMatchObject({
+        provider: "coverartarchive",
+        linkUrl: `https://musicbrainz.org/release-group/${id}`
+      });
+    }
 
     const tokenCall = callsMatching(calls, "accounts.spotify.com")[0];
     expect(tokenCall?.init?.method).toBe("POST");
     expect(tokenCall?.url).not.toContain(CLIENT_SECRET);
-    const albumsCall = callsMatching(calls, "api.spotify.com")[0];
-    expect(albumsCall?.url).toContain("limit=10");
-    expect((albumsCall?.init?.headers as Record<string, string>).authorization).toBe(`Bearer ${ACCESS_TOKEN}`);
+    // One album listing, not a page per ten items of the whole discography.
+    const albumsCalls = callsMatching(calls, "api.spotify.com");
+    expect(albumsCalls).toHaveLength(1);
+    expect(albumsCalls[0]?.url).toContain("include_groups=album&limit=10");
+    expect((albumsCalls[0]?.init?.headers as Record<string, string>).authorization).toBe(`Bearer ${ACCESS_TOKEN}`);
+  });
+
+  it("joins the Spotify singles listing only when the caller asks for it", async () => {
+    const { app, calls } = await makeApp(discographyHandlers());
+    const res = await app.inject({ method: "GET", url: "/api/v1/music/discography?name=Mock%20Band&include=all" });
+    expect(res.statusCode).toBe(200);
+    const body = discographyResponseSchema.parse(res.json());
+
+    expect(body.spotifyPending).toEqual([]);
+    const ep = body.releases.find((r) => r.id === RG_EP);
+    expect(ep?.spotify?.id).toBe(SP_EP);
+    expect(ep?.cover).toMatchObject({ provider: "spotify" });
+
+    const urls = callsMatching(calls, "api.spotify.com").map((call) => call.url);
+    expect(urls).toHaveLength(2);
+    expect(urls.some((url) => url.includes("include_groups=album&"))).toBe(true);
+    expect(urls.some((url) => url.includes("include_groups=single&"))).toBe(true);
+  });
+
+  it("stops asking Spotify when it reports a spent quota, and stays quiet afterwards", async () => {
+    const spentQuota: Handler = {
+      match: (url) => url.includes("api.spotify.com/v1/artists/"),
+      respond: () =>
+        statusResponse(429, { error: { status: 429, reason: "QUOTA_EXCEEDED" } }, { "retry-after": "7200" })
+    };
+    // Retries are on, so a retry would show up as extra calls.
+    const { app, calls } = await makeApp(discographyHandlers([spentQuota]), true, { MEDIA_HTTP_RETRIES: "2" });
+
+    const first = await app.inject({ method: "GET", url: "/api/v1/music/discography?name=Mock%20Band" });
+    expect(first.statusCode).toBe(200);
+    expectNoSecrets(first.payload);
+    const firstBody = discographyResponseSchema.parse(first.json());
+    expect(firstBody.spotifyStatus).toBe("unavailable");
+    expect(firstBody.releases).toHaveLength(3);
+    // Waiting out an hours-long window cannot succeed, so it is not attempted.
+    expect(callsMatching(calls, "api.spotify.com")).toHaveLength(1);
+
+    // The quota is app-wide: a second artist must not spend another call on it.
+    const second = await app.inject({ method: "GET", url: "/api/v1/music/discography?name=Mock%20Band" });
+    const secondBody = discographyResponseSchema.parse(second.json());
+    expect(secondBody.spotifyStatus).toBe("unavailable");
+    expect(secondBody.releases).toHaveLength(3);
+    expect(callsMatching(calls, "api.spotify.com")).toHaveLength(1);
   });
 
   it("reuses the Spotify token across requests", async () => {

@@ -83,11 +83,21 @@ async function getMusic<T>(
 
 export type DiscographyLookup = { name: string } | { mbid: string };
 
+export interface DiscographyFetchOptions extends MusicFetchOptions {
+  /**
+   * `albums` (the default) joins Spotify covers and links for albums only.
+   * `all` also joins singles and EPs, which Spotify lists separately and caps
+   * at ten items per request, so it costs several calls for a prolific artist.
+   */
+  include?: "albums" | "all";
+}
+
 export function fetchDiscography(
   lookup: DiscographyLookup,
-  options: MusicFetchOptions = {},
+  options: DiscographyFetchOptions = {},
 ): Promise<MusicResult<DiscographyResponse>> {
   const params = new URLSearchParams("mbid" in lookup ? { mbid: lookup.mbid } : { name: lookup.name });
+  if (options.include === "all") params.set("include", "all");
   // 404 carries the typed not_found body.
   return getMusic(`/api/v1/music/discography?${params}`, discographyResponseSchema, options, [200, 404]);
 }

@@ -55,7 +55,15 @@ export type SpotifyStatus = z.infer<typeof spotifyStatusSchema>;
 export const discographyQuerySchema = z
   .object({
     name: z.string().trim().min(1).max(100).optional(),
-    mbid: musicBrainzIdSchema.optional()
+    mbid: musicBrainzIdSchema.optional(),
+    /**
+     * Which Spotify listings to join. `albums` joins the album listing only,
+     * which is one Spotify request for most artists. `all` also joins the
+     * singles listing, which Spotify caps at ten items per request, so a
+     * prolific artist costs several. Singles are the bulk of a discography and
+     * of the Spotify quota, so they are fetched only when asked for.
+     */
+    include: z.enum(["albums", "all"]).default("albums")
   })
   .strict()
   .refine((q) => Boolean(q.name ?? q.mbid), { message: "name or mbid is required" });
@@ -102,6 +110,15 @@ export const discographyResponseSchema = z.object({
   releases: z.array(releaseSchema),
   counts: z.object({ album: z.number().int(), ep: z.number().int(), single: z.number().int() }),
   spotifyStatus: spotifyStatusSchema,
+  /**
+   * Release kinds present here whose Spotify covers and links were not
+   * fetched, because Spotify lists them separately from albums and the caller
+   * asked for `include=albums`. Empty when `include=all`, when Spotify was not
+   * consulted, or when a kind has no releases. The releases themselves are
+   * complete either way: covers fall back to the Cover Art Archive, so this
+   * only says the Spotify join can still be filled in.
+   */
+  spotifyPending: z.array(releaseKindSchema),
   notice: z.string().min(1),
   retrievedAt: z.iso.datetime()
 });

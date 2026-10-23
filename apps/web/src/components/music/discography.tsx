@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { RELEASE_KINDS, type DiscographyResponse, type Release, type ReleaseKind, type SpotifyStatus } from "@worlds/shared";
 import { fetchDiscography, type DiscographyLookup } from "@/lib/api/music";
 import { KIND_LABEL, countLabel } from "@/lib/music/format";
@@ -31,8 +31,29 @@ export function Discography({
 }) {
   const [lookup, setLookup] = useState<DiscographyLookup>({ name: artistName });
   const key = "mbid" in lookup ? `discography:mbid:${lookup.mbid}` : `discography:name:${lookup.name.toLowerCase()}`;
-  const { state, reload } = useMusicResource(key, (signal) => fetchDiscography(lookup, { signal }));
-  const data = state.phase === "done" && state.result.kind === "ok" ? state.result.data : null;
+  const base = useMusicResource(key, (signal) => fetchDiscography(lookup, { signal }));
+  const state = base.state;
+
+  /**
+   * Spotify lists albums separately from singles and EPs, and caps a listing at
+   * ten items per request, so the singles listing is the expensive half of a
+   * discography. It is joined only once a reader opens a tab that holds it,
+   * and the album listing already on screen stays visible while it loads.
+   * Keyed by artist so picking a different artist starts over.
+   */
+  const [listingsKey, setListingsKey] = useState<string | null>(null);
+  const wantsListings = listingsKey === key;
+  const requestListings = useCallback(() => setListingsKey(key), [key]);
+  const more = useMusicResource(
+    wantsListings ? `${key}:all` : null,
+    (signal) => fetchDiscography(lookup, { signal, include: "all" }),
+  );
+
+  const baseData = state.phase === "done" && state.result.kind === "ok" ? state.result.data : null;
+  const moreData = more.state.phase === "done" && more.state.result.kind === "ok" ? more.state.result.data : null;
+  const data = moreData ?? baseData;
+  const enriching = wantsListings && more.state.phase === "loading";
+  const enrichFailed = wantsListings && more.state.phase === "done" && more.state.result.kind === "error";
 
   return (
     <section aria-labelledby="discography-title" className="mt-16 border-t border-line pt-10">
@@ -67,7 +88,7 @@ export function Discography({
         ) : state.result.kind === "error" ? (
           <div role="alert" className="space-y-3 py-8 text-sm text-text-2">
             <p>{state.result.message}</p>
-            {state.result.retryable ? <QuietButton onClick={reload}>Try again</QuietButton> : null}
+            {state.result.retryable ? <QuietButton onClick={base.reload}>Try again</QuietButton> : null}
           </div>
         ) : state.result.data.status === "not_found" ? (
           <p role="status" className="py-8 text-sm text-text-2">
@@ -76,7 +97,15 @@ export function Discography({
         ) : state.result.data.status === "ambiguous" ? (
           <Candidates data={state.result.data} onPick={(mbid) => setLookup({ mbid })} />
         ) : (
-          <Releases data={state.result.data} artistName={state.result.data.artist?.name ?? artistName} onSearchName={onSearchName} />
+          <Releases
+            data={data ?? state.result.data}
+            artistName={data?.artist?.name ?? artistName}
+            enriching={enriching}
+            enrichFailed={enrichFailed}
+            onRequestListings={requestListings}
+            onRetryListings={more.reload}
+            onSearchName={onSearchName}
+          />
         )}
       </div>
     </section>
@@ -121,10 +150,18 @@ function Candidates({ data, onPick }: { data: DiscographyResponse; onPick: (mbid
 function Releases({
   data,
   artistName,
+  enriching,
+  enrichFailed,
+  onRequestListings,
+  onRetryListings,
   onSearchName,
 }: {
   data: DiscographyResponse;
   artistName: string;
+  enriching: boolean;
+  enrichFailed: boolean;
+  onRequestListings: () => void;
+  onRetryListings: () => void;
   onSearchName: (name: string) => void;
 }) {
   const kinds = useMemo(() => RELEASE_KINDS.filter((k) => data.counts[k] > 0), [data]);
@@ -133,12 +170,19 @@ function Releases({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const tabRefs = useRef<Partial<Record<ReleaseKind, HTMLButtonElement | null>>>({});
   const detailRef = useRef<HTMLDivElement>(null);
+  const pending = data.spotifyPending;
 
   useEffect(() => {
     if (!selectedId) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     detailRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   }, [selectedId]);
+
+  // EPs and singles arrive in a second, larger Spotify listing, so it is asked
+  // for only once a tab that holds them is opened.
+  useEffect(() => {
+    if (kind && pending.includes(kind)) onRequestListings();
+  }, [kind, pending, onRequestListings]);
 
   if (!kind) {
     return <p className="py-8 text-sm text-text-2">MusicBrainz lists no albums, EPs or singles for this artist yet.</p>;
@@ -204,6 +248,19 @@ function Releases({
           </div>
         ) : null}
       </div>
+
+      {kind && pending.includes(kind) ? (
+        enriching ? (
+          <p role="status" className="text-xs text-text-2">
+            Looking up Spotify covers and links for {KIND_LABEL[kind].many.toLowerCase()}…
+          </p>
+        ) : enrichFailed ? (
+          <p className="text-xs text-text-2">
+            Spotify could not be reached for {KIND_LABEL[kind].many.toLowerCase()}, so covers come from the Cover Art
+            Archive. <QuietButton onClick={onRetryListings}>Try again</QuietButton>
+          </p>
+        ) : null
+      ) : null}
 
       <div ref={detailRef} className="scroll-mt-6">
         {selected ? (
