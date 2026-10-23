@@ -7,6 +7,30 @@ Target platform: **Northflank**, free Sandbox plan. The service is built from
 [`apps/api/Dockerfile`](../api/Dockerfile), which Northflank builds on its own
 builders.
 
+## Live deployment
+
+| | |
+|---|---|
+| API URL | `https://p01--worlds-backend--5j54dgljzm8n.code.run` |
+| Health | `https://p01--worlds-backend--5j54dgljzm8n.code.run/health` |
+| Deployed | 23 October 2026 |
+
+Verified against the live service on that date: `/health` returns
+`{"status":"ok","service":"worlds-api"}`; a live Qloo graph request for Avicii
+returns `complete` with 16 nodes and 15 edges; a live discography returns
+`spotifyStatus: "linked"` with 5 albums, 2 EPs and 36 singles; the Qloo image
+endpoint returns `provenance.mode: "live"`; a recording story returns credits,
+sampled-by and other-version links plus a Wikipedia summary. Rate-limit headers
+report the configured caps (graph 10, Qloo images 20, music 30 per minute), the
+error envelope carries a `requestId` with no stack trace, and no credential
+appears in any response body.
+
+**Known gap:** `CORS_ALLOWED_ORIGIN` on this service still holds the default
+`http://localhost:3000`, so the deployed web app cannot read API responses. A
+request carrying `Origin: http://localhost:3000` receives
+`access-control-allow-origin`, while `https://worlds-fm.vercel.app` does not.
+Add the web origin in the dashboard and the service restarts with it.
+
 ## Why Northflank
 
 | Requirement | How Northflank meets it |
