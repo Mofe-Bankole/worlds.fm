@@ -6,7 +6,9 @@ import { ApiError, type ApiErrorBody } from "./lib/errors.js";
 import { ProviderHttpClient, type FetchLike } from "./lib/http-client.js";
 import { TheAudioDbAdapter } from "./integrations/theaudiodb/index.js";
 import { FanartAdapter } from "./integrations/fanart/index.js";
-import { MusicBrainzAdapter } from "./integrations/musicbrainz/index.js";
+import { MusicBrainzAdapter, MusicBrainzCatalog } from "./integrations/musicbrainz/index.js";
+import { SpotifyAdapter } from "./integrations/spotify/index.js";
+import { WikimediaAdapter } from "./integrations/wikimedia/index.js";
 import { CoverArtArchiveAdapter } from "./integrations/coverartarchive/index.js";
 import { QlooAdapter } from "./integrations/qloo/index.js";
 import { MediaResolver } from "./services/media-resolver.js";
@@ -14,6 +16,8 @@ import { healthRoutes } from "./routes/health.js";
 import { mediaRoutes } from "./routes/media.js";
 import { qlooRoutes } from "./routes/qloo.js";
 import { graphRoutes } from "./routes/graph.js";
+import { musicRoutes } from "./routes/music.js";
+import { MusicCatalogService } from "./services/music-catalog.js";
 import { CulturalDiscoveryService } from "./services/cultural-discovery.js";
 
 export interface BuildAppOptions {
@@ -61,10 +65,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       .send(errorBody("not_found", `Route ${request.method} ${request.url} was not found.`, request.id));
   });
 
-  const resolver = buildMediaResolver(config, options.fetchFn);
+  const http = buildProviderClients(config, options.fetchFn);
+  const cacheOptions = {
+    ttlMs: config.mediaCacheTtlMs,
+    negativeTtlMs: config.mediaNegativeCacheTtlMs,
+    maxEntries: config.mediaCacheMaxEntries
+  };
+  const resolver = buildMediaResolver(config, http);
   await app.register(healthRoutes);
-  await app.register(mediaRoutes, { resolver });
-  const qlooAdapter = buildQlooAdapter(config, options.fetchFn);
+  await app.register(mediaRoutes, { resolver });  const qlooAdapter = buildQlooAdapter(config, options.fetchFn);
   await app.register(qlooRoutes, {
     adapter: qlooAdapter,
     rateLimitPerMinute: config.qlooRateLimitPerMinute
@@ -80,6 +89,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }),
     rateLimitPerMinute: config.graphRateLimitPerMinute
   });
+  await app.register(musicRoutes, {
+    service: new MusicCatalogService({
+      musicBrainz: new MusicBrainzCatalog({ http: http.musicBrainz, cache: cacheOptions }),
+      spotify: new SpotifyAdapter({
+        http: http.provider,
+        ...(options.fetchFn !== undefined ? { fetchFn: options.fetchFn } : {}),
+        clientId: config.spotifyClientId,
+        clientSecret: config.spotifyClientSecret,
+        timeoutMs: config.mediaHttpTimeoutMs,
+        cache: cacheOptions
+      }),
+      wikimedia: new WikimediaAdapter({ http: http.provider, cache: cacheOptions }),
+      log: app.log
+    }),
+    rateLimitPerMinute: config.musicRateLimitPerMinute
+  });
 
   return app;
 }
@@ -88,20 +113,21 @@ function errorBody(code: string, message: string, requestId: string): ApiErrorBo
   return { error: { code, message, requestId } };
 }
 
-function buildMediaResolver(config: AppConfig, fetchFn?: FetchLike): MediaResolver {
-  const cacheOptions = {
-    ttlMs: config.mediaCacheTtlMs,
-    negativeTtlMs: config.mediaNegativeCacheTtlMs,
-    maxEntries: config.mediaCacheMaxEntries
-  };
-  const providerHttp = new ProviderHttpClient({
+interface ProviderClients {
+  provider: ProviderHttpClient;
+  /** Shared by every MusicBrainz caller so the 1 request/second throttle holds process-wide. */
+  musicBrainz: ProviderHttpClient;
+}
+
+function buildProviderClients(config: AppConfig, fetchFn?: FetchLike): ProviderClients {
+  const provider = new ProviderHttpClient({
     ...(fetchFn !== undefined ? { fetchFn } : {}),
     timeoutMs: config.mediaHttpTimeoutMs,
     retries: config.mediaHttpRetries,
     retryBaseDelayMs: config.mediaHttpRetryBaseMs,
     userAgent: config.mediaUserAgent
   });
-  const musicBrainzHttp = new ProviderHttpClient({
+  const musicBrainz = new ProviderHttpClient({
     ...(fetchFn !== undefined ? { fetchFn } : {}),
     timeoutMs: config.mediaHttpTimeoutMs,
     retries: config.mediaHttpRetries,
@@ -110,7 +136,17 @@ function buildMediaResolver(config: AppConfig, fetchFn?: FetchLike): MediaResolv
     // MusicBrainz asks API clients for ~1 request/second.
     minIntervalMs: config.musicBrainzMinIntervalMs
   });
+  return { provider, musicBrainz };
+}
 
+function buildMediaResolver(config: AppConfig, http: ProviderClients): MediaResolver {
+  const cacheOptions = {
+    ttlMs: config.mediaCacheTtlMs,
+    negativeTtlMs: config.mediaNegativeCacheTtlMs,
+    maxEntries: config.mediaCacheMaxEntries
+  };
+  const providerHttp = http.provider;
+  const musicBrainzHttp = http.musicBrainz;
   return new MediaResolver({
     config,
     theAudioDb: new TheAudioDbAdapter({

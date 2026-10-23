@@ -93,6 +93,22 @@ const envSchema = z.object({
   /** Graph explorations cost up to four Qloo requests each. */
   GRAPH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(10),
 
+  /**
+   * Spotify Web API (Client Credentials, catalogue metadata only). Server-side
+   * only. When either value is unset or blank, Spotify covers and links are
+   * skipped and MusicBrainz data is returned on its own.
+   */
+  SPOTIFY_CLIENT_ID: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  SPOTIFY_CLIENT_SECRET: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  /** Per-client cap for /api/v1/music/*; each request may make several MusicBrainz calls. */
+  MUSIC_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(30),
+
   MEDIA_ARTIST_PROVIDER_ORDER: providerOrderSchema(ARTIST_IMAGE_PROVIDERS).prefault(
     "theaudiodb,fanart"
   ),
@@ -136,6 +152,9 @@ export interface AppConfig {
   qlooCacheMaxEntries: number;
   qlooRateLimitPerMinute: number;
   graphRateLimitPerMinute: number;
+  spotifyClientId: string | undefined;
+  spotifyClientSecret: string | undefined;
+  musicRateLimitPerMinute: number;
   artistProviderOrder: ArtistImageProvider[];
   albumProviderOrder: AlbumImageProvider[];
   mediaHttpTimeoutMs: number;
@@ -178,6 +197,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     qlooCacheMaxEntries: cfg.QLOO_CACHE_MAX_ENTRIES,
     qlooRateLimitPerMinute: cfg.QLOO_RATE_LIMIT_PER_MINUTE,
     graphRateLimitPerMinute: cfg.GRAPH_RATE_LIMIT_PER_MINUTE,
+    spotifyClientId: cfg.SPOTIFY_CLIENT_ID,
+    spotifyClientSecret: cfg.SPOTIFY_CLIENT_SECRET,
+    musicRateLimitPerMinute: cfg.MUSIC_RATE_LIMIT_PER_MINUTE,
     artistProviderOrder: cfg.MEDIA_ARTIST_PROVIDER_ORDER as ArtistImageProvider[],
     albumProviderOrder: cfg.MEDIA_ALBUM_PROVIDER_ORDER as AlbumImageProvider[],
     mediaHttpTimeoutMs: cfg.MEDIA_HTTP_TIMEOUT_MS,
