@@ -1,0 +1,26 @@
+# Build context hygiene for the apps/api image (context is the repository root).
+# Keeps the upload small and stops secrets or local build output from entering
+# a layer. The image is built by the host, so this file is what the host reads.
+
+.git
+.github
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+
+# Secrets and local environment. Production reads real environment variables,
+# never a committed file.
+.env
+.env.*
+!.env.example
+
+# Documentation and local tooling are not needed to build or run the API.
+docs
+supabase
+*.md
+
+*.log
+coverage
+.DS_Store
