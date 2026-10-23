@@ -1,20 +1,25 @@
 # Build context hygiene for the apps/api image (context is the repository root).
-# Keeps the upload small and stops secrets or local build output from entering
-# a layer. The image is built by the host, so this file is what the host reads.
+# Keeps the upload small and stops secrets or local build output from entering a
+# layer. The host builds the image, so this file is what the host reads.
 
 .git
 .github
+
+# Secrets. Both the bare and recursive forms are listed because a bare `.env`
+# only matches the context root, while the Dockerfile runs `COPY apps/api apps/api`
+# and apps/api/.env holds real provider credentials. Later patterns win, so the
+# .env.example negations come last.
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
 **/node_modules
 **/dist
 **/.next
 **/.turbo
 **/*.tsbuildinfo
-
-# Secrets and local environment. Production reads real environment variables,
-# never a committed file.
-.env
-.env.*
-!.env.example
 
 # Documentation and local tooling are not needed to build or run the API.
 docs
