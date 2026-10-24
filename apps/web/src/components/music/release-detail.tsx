@@ -10,6 +10,7 @@ import { songPath } from "@/lib/share";
 import { CoverArt, coverCredit } from "./cover-art";
 import { ExternalLink, QuietButton, SpotifyButton } from "./links";
 import { TrackStory } from "./track-story";
+import { TrackPlayButton } from "./track-play-button";
 import { PlayerIndicator, PlayerPlayButton, usePlayer } from "./player-context";
 
 export function ReleaseDetail({
@@ -190,7 +191,9 @@ function TrackList({ data, onSearchName }: { data: ReleaseTracksResponse; onSear
                         >
                           Play
                         </PlayerPlayButton>
-                      ) : null}
+                      ) : (
+                        <TrackPlayButton recordingMbid={track.recordingMbid} title={track.title} artist={track.artistCredit} />
+                      )}
                     </div>
                   </div>
                   {track.spotify ? <div className="pb-2 pl-11"><PlayerIndicator kind="track" id={track.spotify.id} /></div> : null}
