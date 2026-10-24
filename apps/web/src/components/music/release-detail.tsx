@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Release, ReleaseTracksResponse, Track } from "@worlds/shared";
 import { fetchReleaseTracks } from "@/lib/api/music";
 import { KIND_LABEL, formatDuration, formatPartialDate, formatRuntime } from "@/lib/music/format";
@@ -10,6 +10,7 @@ import { songPath } from "@/lib/share";
 import { CoverArt, coverCredit } from "./cover-art";
 import { ExternalLink, QuietButton, SpotifyButton } from "./links";
 import { TrackStory } from "./track-story";
+import { PlayerIndicator, PlayerPlayButton, usePlayer } from "./player-context";
 
 export function ReleaseDetail({
   release,
@@ -27,6 +28,12 @@ export function ReleaseDetail({
     fetchReleaseTracks(release.id, spotifyAlbumId, { signal }),
   );
   const data = state.phase === "done" && state.result.kind === "ok" ? state.result.data : null;
+  const { updateAlbumTracks } = usePlayer();
+  useEffect(() => {
+    if (data && spotifyAlbumId) {
+      updateAlbumTracks(spotifyAlbumId, data.tracks.flatMap((track) => track.spotify ? [track.spotify.id] : []));
+    }
+  }, [data, spotifyAlbumId, updateAlbumTracks]);
   const meta = [
     formatPartialDate(data?.release.date ?? release.firstReleaseDate),
     data ? `${data.tracks.length} ${data.tracks.length === 1 ? "track" : "tracks"}` : release.trackCount ? `${release.trackCount} tracks` : "",
@@ -62,6 +69,14 @@ export function ReleaseDetail({
           {meta.length > 0 ? <p className="font-mono text-xs text-text-3">{meta.join(" · ")}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {release.spotify ? (
+            <PlayerPlayButton entity={{
+              kind: "album", id: release.spotify.id, title: release.title, artist: artistName,
+              trackIds: data?.tracks.flatMap((track) => track.spotify ? [track.spotify.id] : []),
+            }}>
+              Play album
+            </PlayerPlayButton>
+          ) : null}
           {release.spotify ? <SpotifyButton href={release.spotify.url}>Open in Spotify</SpotifyButton> : null}
           <ExternalLink href={release.musicbrainzUrl} className="text-sm">
             MusicBrainz
@@ -70,6 +85,7 @@ export function ReleaseDetail({
             Close
           </QuietButton>
         </div>
+        {release.spotify ? <PlayerIndicator kind="album" id={release.spotify.id} /> : null}
       </div>
 
       <div className="min-w-0">
@@ -168,16 +184,16 @@ function TrackList({ data, onSearchName }: { data: ReleaseTracksResponse; onSear
                         Story
                       </QuietButton>
                       {track.spotify ? (
-                        <ExternalLink
-                          href={track.spotify.url}
-                          label={`Play ${track.title} on Spotify`}
-                          className="text-[0.625rem] font-semibold uppercase tracking-[0.12em]"
+                        <PlayerPlayButton
+                          entity={{ kind: "track", id: track.spotify.id, title: track.title, artist: track.artistCredit }}
+                          className="px-2 py-1 text-[0.625rem] uppercase tracking-[0.12em]"
                         >
                           Play
-                        </ExternalLink>
+                        </PlayerPlayButton>
                       ) : null}
                     </div>
                   </div>
+                  {track.spotify ? <div className="pb-2 pl-11"><PlayerIndicator kind="track" id={track.spotify.id} /></div> : null}
                   {open ? (
                     <div className="pb-3">
                       <TrackStory

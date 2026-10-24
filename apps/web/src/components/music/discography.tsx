@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { CoverArt } from "./cover-art";
 import { ExternalLink, QuietButton, SpotifyButton } from "./links";
 import { ReleaseDetail } from "./release-detail";
+import { PlayerIndicator } from "./player-context";
 
 const INITIAL_VISIBLE = 12;
 
@@ -277,6 +278,7 @@ function Releases({
       {data.spotifyStatus !== "linked" ? <p className="text-xs text-text-2">{SPOTIFY_NOTE[data.spotifyStatus]}</p> : null}
       <p className="max-w-3xl text-[0.6875rem] leading-relaxed text-text-3">
         {data.notice} Live recordings, compilations and remix sets are left out.
+        {" "}Playing loads Spotify’s third-party player, which may set cookies.
       </p>
     </div>
   );
@@ -315,6 +317,7 @@ function ReleaseTile({ release, selected, onSelect }: { release: Release; select
           </ExternalLink>
         ) : null}
       </p>
+      {release.spotify ? <PlayerIndicator kind="album" id={release.spotify.id} /> : null}
     </li>
   );
 }
