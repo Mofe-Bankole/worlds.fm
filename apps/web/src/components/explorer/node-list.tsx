@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { CulturalGraph } from "@worlds/shared";
 import { CATEGORY_META, formatAffinity, presentCategories, type VisibleGraph } from "@/lib/explorer/model";
+import { BASIS } from "@/lib/connection-basis";
 import { cn } from "@/lib/cn";
 import { CategoryIcon } from "./shape-icon";
 
@@ -15,8 +16,8 @@ interface NodeListProps {
 
 /** Full list alternative to the constellation: same data, no spatial reading needed. */
 export function NodeList({ graph, visible, selectedId, onSelect }: NodeListProps) {
-  const affinity = new Map(
-    visible.edges.map((e) => [e.source === graph.rootId ? e.target : e.source, e.affinity] as const),
+  const edges = new Map(
+    visible.edges.map((e) => [e.source === graph.rootId ? e.target : e.source, e] as const),
   );
   const root = graph.nodes.find((n) => n.id === graph.rootId);
   return (
@@ -71,8 +72,11 @@ export function NodeList({ graph, visible, selectedId, onSelect }: NodeListProps
                       )}
                       <span className="truncate text-sm font-semibold text-text">{node.name}</span>
                     </span>
-                    <span className="shrink-0 text-xs text-text-2">
-                      Affinity {formatAffinity(affinity.get(node.id) ?? null)}
+                    <span className="shrink-0 text-right text-xs text-text-2">
+                      <span className="block text-text">
+                        {BASIS[edges.get(node.id)?.basis.kind ?? "audience_overlap"].label}
+                      </span>
+                      <span className="block">Affinity {formatAffinity(edges.get(node.id)?.affinity ?? null)}</span>
                     </span>
                   </button>
                 </li>

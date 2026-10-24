@@ -23,7 +23,16 @@ function node(id: string, name: string, category: string, eligible = category ==
   };
 }
 
-function edge(target: string, affinity: number | null, label: string) {
+/**
+ * `basis` is the rung of the evidence ladder a link sits on. Fixtures cover
+ * three rungs so tests can tell them apart in the UI.
+ */
+function edge(
+  target: string,
+  affinity: number | null,
+  label: string,
+  basis: { kind: string; shared?: string[] } = { kind: "audience_overlap" },
+) {
   return {
     id: `${ROOT}|affinity_recommendation|qloo:${target}`,
     source: ROOT,
@@ -34,6 +43,13 @@ function edge(target: string, affinity: number | null, label: string) {
     affinity,
     references: [],
     label,
+    basis: {
+      kind: basis.kind,
+      statement: label,
+      shared: basis.shared ?? [],
+      sourceLabel: "Qloo",
+      sourceUrl: null,
+    },
   };
 }
 
@@ -49,10 +65,10 @@ export const FIXTURE_GRAPH = culturalGraphSchema.parse({
   rootId: ROOT,
   nodes: N,
   edges: [
-    edge("00000000-0000-4000-8000-0000000000b2", 0.98, "Qloo cultural affinity: Mock Brand."),
-    edge("00000000-0000-4000-8000-0000000000b1", 0.9, "Qloo cultural affinity: Mock Artist B."),
-    edge("00000000-0000-4000-8000-0000000000b3", 0.8, "Qloo cultural affinity: Mock Destination. A recommendation, not a verified location."),
-    edge("00000000-0000-4000-8000-0000000000b4", null, "Qloo cultural affinity: No Score Artist."),
+    edge("00000000-0000-4000-8000-0000000000b2", 0.98, "Both are tagged Mock and Shared.", { kind: "shared_attribute", shared: ["Mock", "Shared"] }),
+    edge("00000000-0000-4000-8000-0000000000b1", 0.9, "Qloo lists Mock Artist among Mock Artist B's influences.", { kind: "provider_attribute" }),
+    edge("00000000-0000-4000-8000-0000000000b3", 0.8, "Qloo found no documented link and no shared trait between Mock Artist and Mock Destination. A recommendation, not a verified location."),
+    edge("00000000-0000-4000-8000-0000000000b4", null, "Qloo found no documented link and no shared trait between Mock Artist and No Score Artist."),
   ],
   retrieval: {
     retrievedAt: AT,

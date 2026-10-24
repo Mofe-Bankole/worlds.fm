@@ -121,6 +121,79 @@ describe("GET /api/v1/qloo/search", () => {
     expect(headers["x-api-key"]).toBe(TEST_KEY);
   });
 
+  it("keeps the entity traits that explain a connection, bounded and de-duplicated", async () => {
+    const { app } = await makeApp({
+      handlers: [
+        {
+          match: isSearch,
+          respond: () =>
+            jsonResponse(
+              searchBody([
+                entity({
+                  properties: {
+                    primary_genres: ["Pop", "R&B", "pop", "Jazz", "Soul", "Funk", "Disco", "House"],
+                    secondary_genres: ["Dance-Pop"],
+                    lyrical_themes: ["Love", "Identity"],
+                    influenced_by: ["Mock Elder"],
+                    collaborators: ["Mock Peer"],
+                    associated_brands: ["Mock Records"],
+                    place_of_birth: "Mockville",
+                    founded_year: "1973"
+                  },
+                  tags: [
+                    { id: "a1", name: "Devoted", type: "urn:tag:audience:qloo" },
+                    { id: "a2", name: "Diverse", type: "urn:tag:audience:qloo" },
+                    { id: "g1", name: "Mock Genre", type: "urn:tag:genre:music" }
+                  ]
+                })
+              ])
+            )
+        }
+      ]
+    });
+
+    const body = qlooSearchResponseSchema.parse((await app.inject("/api/v1/qloo/search?query=Mock%20Artist")).json());
+    const attributes = body.results[0]?.attributes;
+
+    // Capped at six, order preserved, case-insensitive de-duplication.
+    expect(attributes?.genres).toEqual(["Pop", "R&B", "Jazz", "Soul", "Funk", "Disco"]);
+    expect(attributes?.themes).toEqual(["Love", "Identity"]);
+    expect(attributes?.influences).toEqual(["Mock Elder"]);
+    expect(attributes?.collaborators).toEqual(["Mock Peer"]);
+    expect(attributes?.brands).toEqual(["Mock Records"]);
+    expect(attributes?.origin).toBe("Mockville");
+    expect(attributes?.foundedYear).toBe(1973);
+    // Only the audience namespace counts, and the genre tag is left alone.
+    expect(attributes?.audienceTraits).toEqual(["Devoted", "Diverse"]);
+  });
+
+  it("leaves every trait empty when the provider sends none", async () => {
+    const { app } = await makeApp({
+      handlers: [
+        {
+          match: isSearch,
+          respond: () =>
+            jsonResponse(
+              searchBody([
+                { name: "Bare Artist", entity_id: AVICII_ID, types: ["urn:entity:artist"] }
+              ])
+            )
+        }
+      ]
+    });
+    const body = qlooSearchResponseSchema.parse((await app.inject("/api/v1/qloo/search?query=Bare%20Artist")).json());
+    expect(body.results[0]?.attributes).toEqual({
+      genres: [],
+      themes: [],
+      audienceTraits: [],
+      influences: [],
+      collaborators: [],
+      brands: [],
+      origin: null,
+      foundedYear: null
+    });
+  });
+
   it("reads the search entity shape observed live (types array, tag_id)", async () => {
     const { app } = await makeApp({
       handlers: [

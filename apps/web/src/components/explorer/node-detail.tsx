@@ -1,6 +1,7 @@
 "use client";
 
 import type { CulturalEdge, CulturalGraph, CulturalNode } from "@worlds/shared";
+import { BasisBadge } from "@/components/primitives/basis-badge";
 import { SignalAction, SignalCard } from "@/components/primitives/signal-card";
 import { StripedImage } from "@/components/primitives/striped-image";
 import { ShareControl } from "@/components/share/share-control";
@@ -127,7 +128,7 @@ export function NodeCard({
             {node.name}
           </span>
           <span className="text-text-2">
-            Audiences of {root.name} also show affinity for {node.name}.
+            {edge ? edge.basis.statement : `This is the root of ${root.name}’s world.`}
           </span>
         </>
       }
@@ -148,6 +149,25 @@ export function NodeCard({
       }
     >
       {summary ? <p className="type-small line-clamp-4 text-text-2">{summary}</p> : null}
+      {/* Which rung of the evidence ladder this link sits on, and the values
+          behind it, so a shared trait is never read as a documented link. */}
+      {edge ? (
+        <div className="space-y-2">
+          <BasisBadge basis={edge.basis} />
+          {edge.basis.shared.length > 0 ? (
+            <ul className="flex flex-wrap gap-1.5">
+              {edge.basis.shared.map((value) => (
+                <li
+                  key={value}
+                  className="border border-line-strong px-2 py-0.5 text-[0.6875rem] text-text-2"
+                >
+                  {value}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-3 text-xs text-text-2">
         <span className="inline-flex items-center gap-1.5 font-semibold text-mint">
           <span aria-hidden="true" className="inline-block w-5 border-t border-dashed border-current" />

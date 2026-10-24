@@ -2,6 +2,7 @@ import {
   QLOO_AFFINITY_NOTICE,
   QLOO_IMAGE_HOST,
   type QlooEntity,
+  type QlooEntityAttributes,
   type QlooEntityType,
   type QlooInsightsResponse,
   type QlooProvenance,
@@ -42,6 +43,11 @@ const PROVIDER = "qloo";
 const KEY_HEADER = "x-api-key";
 
 const MAX_TAGS_PER_ENTITY = 10;
+/** Cap per attribute list: the provider's own lists are long and one of these rides on every node. */
+const MAX_ATTRIBUTE_VALUES = 6;
+
+/** The `audience` tag namespace, e.g. `urn:tag:audience:qloo` (observed live 2026-10-24). */
+const AUDIENCE_TAG_PREFIX = "urn:tag:audience";
 
 /** Insights tags carry `id`; `/search` tags carry `tag_id` (observed live 2026-10-21). */
 const qlooTagSchema = z.looseObject({
@@ -49,6 +55,27 @@ const qlooTagSchema = z.looseObject({
   tag_id: z.string().min(1).nullish(),
   name: z.string().nullish(),
   type: z.string().nullish()
+});
+
+/**
+ * `properties` is a large, loosely-typed bag. Only the fields that describe
+ * *what an entity is like* are declared; everything else is ignored, and the
+ * object stays loose so a provider addition cannot break parsing.
+ */
+const qlooPropertiesSchema = z.looseObject({
+  description: z.string().nullish(),
+  short_description: z.string().nullish(),
+  image: z.looseObject({ url: z.string().nullish() }).nullish(),
+  primary_genres: z.array(z.string()).nullish(),
+  secondary_genres: z.array(z.string()).nullish(),
+  lyrical_themes: z.array(z.string()).nullish(),
+  influenced_by: z.array(z.string()).nullish(),
+  collaborators: z.array(z.string()).nullish(),
+  associated_brands: z.array(z.string()).nullish(),
+  place_of_birth: z.string().nullish(),
+  headquartered: z.string().nullish(),
+  founded_year: z.union([z.number(), z.string()]).nullish(),
+  inception: z.union([z.number(), z.string()]).nullish()
 });
 
 const qlooEntityPayloadSchema = z.looseObject({
@@ -60,13 +87,7 @@ const qlooEntityPayloadSchema = z.looseObject({
   types: z.array(z.string()).nullish(),
   popularity: z.number().nullish(),
   disambiguation: z.string().nullish(),
-  properties: z
-    .looseObject({
-      description: z.string().nullish(),
-      short_description: z.string().nullish(),
-      image: z.looseObject({ url: z.string().nullish() }).nullish()
-    })
-    .nullish(),
+  properties: qlooPropertiesSchema.nullish(),
   tags: z.array(z.unknown()).nullish(),
   query: z.looseObject({ affinity: z.number().nullish() }).nullish()
 });
@@ -252,6 +273,7 @@ function toEntity(payload: QlooEntityPayload): QlooEntity {
         ]
       : [];
   });
+  const kept = tags.slice(0, MAX_TAGS_PER_ENTITY);
   return {
     id: payload.entity_id,
     name: payload.name,
@@ -260,9 +282,63 @@ function toEntity(payload: QlooEntityPayload): QlooEntity {
     description:
       payload.properties?.description ?? payload.properties?.short_description ?? null,
     disambiguation: payload.disambiguation ?? null,
-    tags: tags.slice(0, MAX_TAGS_PER_ENTITY),
-    imageUrl: qlooImageUrl(payload.properties?.image?.url)
+    tags: kept,
+    imageUrl: qlooImageUrl(payload.properties?.image?.url),
+    attributes: toAttributes(payload.properties, tags)
   };
+}
+
+/**
+ * Pull out the traits that can explain a connection. Provider order is kept,
+ * because the provider lists them most- to least-characteristic, and each list
+ * is capped and de-duplicated so one node cannot bloat a graph response.
+ */
+function toAttributes(
+  properties: z.infer<typeof qlooPropertiesSchema> | null | undefined,
+  tags: Array<{ name: string | null; type: string | null }>
+): QlooEntityAttributes {
+  const props = properties ?? {};
+  return {
+    genres: stringList([...(props.primary_genres ?? []), ...(props.secondary_genres ?? [])]),
+    themes: stringList(props.lyrical_themes),
+    audienceTraits: stringList(
+      tags
+        .filter((tag) => (tag.type ?? "").startsWith(AUDIENCE_TAG_PREFIX))
+        .map((tag) => tag.name ?? "")
+    ),
+    influences: stringList(props.influenced_by),
+    collaborators: stringList(props.collaborators),
+    brands: stringList(props.associated_brands),
+    origin: firstText(props.place_of_birth) ?? firstText(props.headquartered),
+    foundedYear: yearOf(props.founded_year) ?? yearOf(props.inception)
+  };
+}
+
+/** Trimmed, de-duplicated (case-insensitively), capped, order preserved. */
+function stringList(values: Array<string | null | undefined> | null | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values ?? []) {
+    const text = typeof value === "string" ? value.trim() : "";
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+    if (out.length >= MAX_ATTRIBUTE_VALUES) break;
+  }
+  return out;
+}
+
+function firstText(value: string | null | undefined): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text || null;
+}
+
+/** Accepts a number or a numeric string; anything implausible becomes null. */
+function yearOf(value: number | string | null | undefined): number | null {
+  const year = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  return Number.isInteger(year) && year >= 1000 && year <= 2100 ? year : null;
 }
 
 /** Accepts only HTTPS URLs on the Qloo image host; anything else becomes null. */

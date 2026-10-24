@@ -59,6 +59,46 @@ export const qlooTagSchema = z.object({
   type: z.string().nullable()
 });
 
+/**
+ * The parts of a Qloo entity's `properties` and typed tags that say *what an
+ * entity is like*, as opposed to what it is. They are what lets a connection
+ * be explained specifically instead of restated generically, and they are
+ * Qloo's description of the entity, never independent verification of it.
+ *
+ * Each list is bounded because the provider's own lists are long and a graph
+ * response carries one of these per node.
+ */
+export const qlooEntityAttributesSchema = z.object({
+  /** `primary_genres`, e.g. "Pop", "R&B". */
+  genres: z.array(z.string()),
+  /** `lyrical_themes`, e.g. "Love", "Introspection". */
+  themes: z.array(z.string()),
+  /** Tags in Qloo's `audience` namespace, e.g. "Devoted", "Diverse". */
+  audienceTraits: z.array(z.string()),
+  /** `influenced_by` names, as Qloo states them. */
+  influences: z.array(z.string()),
+  /** `collaborators` names, as Qloo states them. */
+  collaborators: z.array(z.string()),
+  /** `associated_brands` and labels, e.g. a record label. */
+  brands: z.array(z.string()),
+  /** `place_of_birth` for a person, `headquartered` for a brand. */
+  origin: z.string().nullable(),
+  /** `founded_year` or `inception`, as a year. */
+  foundedYear: z.number().int().nullable()
+});
+export type QlooEntityAttributes = z.infer<typeof qlooEntityAttributesSchema>;
+
+export const EMPTY_QLOO_ATTRIBUTES: QlooEntityAttributes = {
+  genres: [],
+  themes: [],
+  audienceTraits: [],
+  influences: [],
+  collaborators: [],
+  brands: [],
+  origin: null,
+  foundedYear: null
+};
+
 /** A Qloo entity with the stable Qloo identifier preserved. */
 export const qlooEntitySchema = z.object({
   /** Qloo `entity_id`. Never replaced with a Worlds.fm ID. */
@@ -71,7 +111,9 @@ export const qlooEntitySchema = z.object({
   disambiguation: z.string().nullable(),
   tags: z.array(qlooTagSchema),
   /** Qloo-hosted image (`properties.image.url`), HTTPS on {@link QLOO_IMAGE_HOST} only. */
-  imageUrl: z.url().nullable().optional()
+  imageUrl: z.url().nullable().optional(),
+  /** Qloo's own description of what this entity is like. */
+  attributes: qlooEntityAttributesSchema.default(EMPTY_QLOO_ATTRIBUTES)
 });
 export type QlooEntity = z.infer<typeof qlooEntitySchema>;
 

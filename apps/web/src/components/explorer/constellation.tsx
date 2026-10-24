@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useRef, type CSSProperties, type KeyboardEvent } from "react";
-import type { CulturalGraph, CulturalNode } from "@worlds/shared";
+import type { CulturalEdge, CulturalGraph, CulturalNode } from "@worlds/shared";
 import {
   CATEGORY_META,
   CENTER,
@@ -20,6 +20,7 @@ import {
   type ShapeKind,
   type VisibleGraph,
 } from "@/lib/explorer/model";
+import { BASIS } from "@/lib/connection-basis";
 import { cn } from "@/lib/cn";
 import "./constellation.css";
 
@@ -85,9 +86,9 @@ export function Constellation({
   const labels = useMemo(() => layoutLabels(graph, positions), [graph, positions]);
 
   const edgeByNode = useMemo(() => {
-    const map = new Map<string, number | null>();
+    const map = new Map<string, CulturalEdge>();
     for (const edge of visible.edges) {
-      map.set(edge.source === graph.rootId ? edge.target : edge.source, edge.affinity);
+      map.set(edge.source === graph.rootId ? edge.target : edge.source, edge);
     }
     return map;
   }, [visible.edges, graph.rootId]);
@@ -210,10 +211,11 @@ export function Constellation({
         const selected = selectedId === node.id;
         const label = labels.get(node.id);
         const rightSide = (label?.anchor ?? (pos.x >= CENTER ? "start" : "end")) === "start";
-        const affinity = isRoot ? null : (edgeByNode.get(node.id) ?? null);
+        const edge = isRoot ? undefined : edgeByNode.get(node.id);
+        // The basis is read out too, so the ladder is available without sight.
         const description = isRoot
           ? `${node.name}, root artist`
-          : `${node.name}, ${meta.label}, Qloo cultural affinity ${formatAffinity(affinity)}`;
+          : `${node.name}, ${meta.label}, ${BASIS[edge?.basis.kind ?? "audience_overlap"].label}, affinity ${formatAffinity(edge?.affinity ?? null)}`;
         return (
           <g key={node.id} transform={`translate(${pos.x} ${pos.y})`}>
             <g className="constellation-enter" style={{ "--i": i } as CSSProperties}>

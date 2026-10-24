@@ -38,6 +38,39 @@ export const RELATIONSHIP_TYPES = ["affinity_recommendation", "related_to"] as c
 export const relationshipTypeSchema = z.enum(RELATIONSHIP_TYPES);
 export type RelationshipType = z.infer<typeof relationshipTypeSchema>;
 
+/**
+ * What a connection is *based on*, strongest first. Evidence kind says what
+ * sort of evidence a link is; basis says how specific the explanation behind
+ * it can be. A link never hides which rung it sits on, so a reader can tell a
+ * documented relationship from a shared trait from a bare audience overlap.
+ *
+ * - `documented`: a cited source states the relationship. Requires references.
+ * - `provider_attribute`: the provider states a relationship or trait that
+ *   connects the two. Attributed to the provider, never asserted as history.
+ * - `shared_attribute`: the two entities share a trait the provider records.
+ * - `audience_overlap`: nothing but the affinity score itself.
+ */
+export const CONNECTION_BASES = [
+  "documented",
+  "provider_attribute",
+  "shared_attribute",
+  "audience_overlap"
+] as const;
+export const connectionBasisSchema = z.enum(CONNECTION_BASES);
+export type ConnectionBasis = z.infer<typeof connectionBasisSchema>;
+
+export const edgeBasisSchema = z.object({
+  kind: connectionBasisSchema,
+  /** One plain sentence naming what the link is based on. */
+  statement: z.string().min(1),
+  /** The concrete values behind the statement, for display as-is. */
+  shared: z.array(z.string()),
+  /** Who supplied the basis, so the reader can weigh it. */
+  sourceLabel: z.string().min(1),
+  sourceUrl: z.url().nullable()
+});
+export type EdgeBasis = z.infer<typeof edgeBasisSchema>;
+
 export const sourceReferenceSchema = z.object({
   label: z.string().min(1),
   url: z.url().optional(),
@@ -120,7 +153,9 @@ export const culturalEdgeSchema = z
     affinity: z.number().nullable(),
     references: z.array(sourceReferenceSchema),
     /** What the link means, in words a user can read. */
-    label: z.string().min(1)
+    label: z.string().min(1),
+    /** What the link is based on, and how strong that basis is. */
+    basis: edgeBasisSchema
   })
   .superRefine((edge, ctx) => {
     if (edge.evidence === "qloo_affinity") {
@@ -135,6 +170,12 @@ export const culturalEdgeSchema = z
     }
     if (edge.evidence === "verified_fact" && edge.references.length === 0) {
       ctx.addIssue({ code: "custom", message: "verified_fact edges require a source reference" });
+    }
+    if (edge.basis.kind === "documented" && edge.references.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "a documented basis requires the source it is documented in"
+      });
     }
   });
 export type CulturalEdge = z.infer<typeof culturalEdgeSchema>;
@@ -177,5 +218,6 @@ export const CULTURAL_GRAPH_LIMITATIONS = [
   "Qloo links are cultural affinity signals between audiences, not verified history, influence, collaboration, endorsement or causation.",
   "An affinity score ranks items for a population. It is not the probability that an individual likes an item.",
   "Place and destination results are recommendations, not verified locations. No coordinates or map pins are derived from them.",
-  "Only artist nodes are confirmed as expansion roots."
+  "Only artist nodes are confirmed as expansion roots.",
+  "Every link states its basis and which rung of the ladder that basis sits on. A documented basis carries its source; a provider-stated or shared trait is Qloo's description of the entities, not independent verification."
 ] as const;

@@ -7,10 +7,13 @@ import {
   type CulturalEdge,
   type CulturalGraph,
   type CulturalNode,
+  type EdgeBasis,
   type GraphWarning,
   type QlooEntity,
   type QlooInsightsResponse
 } from "@worlds/shared";
+
+import { explainConnection } from "./connection-explanation.js";
 
 export const DEFAULT_MAX_NODES = 25;
 export const DEFAULT_MAX_PER_CATEGORY = 10;
@@ -79,16 +82,20 @@ function toNode(entity: QlooEntity): CulturalNode {
   };
 }
 
-function edgeLabel(root: string, target: CulturalNode): string {
-  switch (target.category) {
-    case "place":
-    case "destination":
-      return `Qloo cultural affinity: audiences of ${root} also show affinity for ${target.name}. A recommendation, not a verified location.`;
-    default:
-      return `Qloo cultural affinity: audiences of ${root} also show affinity for ${target.name}.`;
-  }
+/**
+ * The edge's label is what the link is based on, which is what a reader needs
+ * in order to weigh it. The affinity notice stays on the evidence kind and in
+ * the graph limitations, so it is stated once per graph rather than repeated
+ * on every edge. A place target keeps its own caveat inline, because a
+ * recommendation must never read as a verified location.
+ */
+function edgeLabel(basis: EdgeBasis, target: CulturalNode): string {
+  const placeCaveat =
+    target.category === "place" || target.category === "destination"
+      ? " A recommendation, not a verified location."
+      : "";
+  return `${basis.statement}${placeCaveat}`;
 }
-
 function compareText(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
@@ -153,6 +160,12 @@ export function buildCulturalGraph(
       }
       const affinity =
         typeof item.affinity === "number" && Number.isFinite(item.affinity) ? item.affinity : null;
+      const basis = explainConnection({
+        root: parsedRoot.data,
+        target: parsed.data,
+        rootCategory: rootNode.category,
+        targetCategory: node.category
+      });
       const edge: CulturalEdge = {
         id: affinityEdgeId(rootNode.id, node.id),
         source: rootNode.id,
@@ -168,7 +181,8 @@ export function buildCulturalGraph(
         },
         affinity,
         references: [],
-        label: edgeLabel(rootNode.name, node)
+        label: edgeLabel(basis, node),
+        basis
       };
       const existing = candidates.get(edge.id);
       if (!existing || compareCandidates({ node, edge }, existing) < 0) {

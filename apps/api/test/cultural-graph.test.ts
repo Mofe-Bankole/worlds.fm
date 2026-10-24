@@ -1,4 +1,4 @@
-import { culturalGraphSchema, type QlooEntity, type QlooInsightsResponse } from "@worlds/shared";
+import { culturalGraphSchema, EMPTY_QLOO_ATTRIBUTES, type QlooEntity, type QlooInsightsResponse } from "@worlds/shared";
 import { describe, expect, it } from "vitest";
 
 import { buildCulturalGraph, qlooNodeId } from "../src/graph/cultural-graph-builder.js";
@@ -17,6 +17,7 @@ function entity(over: Partial<QlooEntity> & { id: string; name: string }): QlooE
     description: null,
     disambiguation: null,
     tags: [],
+    attributes: EMPTY_QLOO_ATTRIBUTES,
     ...over
   };
 }
@@ -85,6 +86,65 @@ describe("buildCulturalGraph (mock fixtures, no network)", () => {
     expect(dest?.expansion.eligible).toBe(false);
     expect(graph.edges.find((e) => e.target === dest?.id)?.label).toContain("not a verified location");
     expect(graph.retrieval.nodesByCategory).toEqual({ artist: 2, brand: 1, destination: 1 });
+  });
+
+  it("states what each link is based on, on the strongest rung available", () => {
+    const rootWithTraits = entity({
+      id: ROOT_ID,
+      name: "Mock Artist",
+      attributes: {
+        ...EMPTY_QLOO_ATTRIBUTES,
+        genres: ["Pop", "R&B"],
+        audienceTraits: ["Devoted"]
+      }
+    });
+    const statingInfluence = entity({
+      id: "BBBBBBBB-0000-4000-8000-000000000002",
+      name: "Mock Artist B",
+      attributes: { ...EMPTY_QLOO_ATTRIBUTES, influences: ["Mock Artist"] }
+    });
+    const sharingGenres = entity({
+      id: "CCCCCCCC-0000-4000-8000-000000000003",
+      name: "Mock Artist C",
+      attributes: { ...EMPTY_QLOO_ATTRIBUTES, genres: ["r&b"], audienceTraits: ["Devoted"] }
+    });
+    const sharingNothing = entity({
+      id: "DDDDDDDD-0000-4000-8000-000000000004",
+      name: "Mock Artist D",
+      attributes: { ...EMPTY_QLOO_ATTRIBUTES, genres: ["Death Metal"] }
+    });
+
+    const graph = buildCulturalGraph({
+      root: rootWithTraits,
+      insights: [
+        insights("artist", [
+          { entity: statingInfluence, affinity: 0.95 },
+          { entity: sharingGenres, affinity: 0.9 },
+          { entity: sharingNothing, affinity: 0.85 }
+        ])
+      ]
+    });
+
+    const basisFor = (name: string) =>
+      graph.edges.find((e) => graph.nodes.find((n) => n.id === e.target)?.name === name)?.basis;
+
+    expect(basisFor("Mock Artist B")?.kind).toBe("provider_attribute");
+    expect(basisFor("Mock Artist B")?.statement).toBe("Qloo lists Mock Artist among Mock Artist B's influences.");
+
+    expect(basisFor("Mock Artist C")?.kind).toBe("shared_attribute");
+    expect(basisFor("Mock Artist C")?.statement).toBe(
+      "Both are tagged R&B. Qloo describes both audiences as Devoted."
+    );
+    expect(basisFor("Mock Artist C")?.shared).toEqual(["R&B", "Devoted"]);
+
+    expect(basisFor("Mock Artist D")?.kind).toBe("audience_overlap");
+    expect(basisFor("Mock Artist D")?.shared).toEqual([]);
+
+    // Every edge carries a basis, and the label is the basis it is based on.
+    for (const edge of graph.edges) {
+      expect(edge.basis.statement).toBeTruthy();
+      expect(edge.label.startsWith(edge.basis.statement)).toBe(true);
+    }
   });
 
   it("keeps every edge directed, provenance-backed and labelled qloo_affinity", () => {
