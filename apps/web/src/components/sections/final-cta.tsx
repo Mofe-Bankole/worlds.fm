@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { ContourField } from "@/components/primitives/contour-field";
 import { SectionShell } from "./section-shell";
 
@@ -17,8 +18,8 @@ export function FinalCta() {
         Search an artist. Step into their world. Follow the links, and check the
         evidence.
       </p>
-      <a
-        href="#top"
+      <Link
+        href="/explore"
         className="group mt-10 inline-flex items-center gap-3 rounded-full bg-electric px-9 py-4 text-base font-semibold text-on-accent transition hover:bg-fresh hover:shadow-glow-md active:scale-[0.98]"
       >
         Start exploring
@@ -26,7 +27,7 @@ export function FinalCta() {
           aria-hidden="true"
           className="size-5 transition-transform group-hover:translate-x-1"
         />
-      </a>
+      </Link>
     </SectionShell>
   );
 }

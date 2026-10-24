@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { WorldsMark } from "@/components/worlds-mark";
 import { GlassSurface } from "@/components/primitives/glass-surface";
@@ -57,12 +58,12 @@ export function SiteNav() {
         </ul>
 
         <div className="flex items-center gap-2">
-          <a
-            href="#top"
+          <Link
+            href="/explore"
             className="hidden rounded-full bg-electric px-5 py-2.5 text-sm font-semibold text-on-accent transition hover:bg-fresh hover:shadow-glow-sm sm:inline-block"
           >
             Start exploring
-          </a>
+          </Link>
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
@@ -99,13 +100,13 @@ export function SiteNav() {
             </li>
           ))}
           <li>
-            <a
-              href="#top"
+            <Link
+              href="/explore"
               onClick={() => setOpen(false)}
               className="mt-2 block rounded-full bg-electric px-4 py-3 text-center text-base font-semibold text-on-accent"
             >
               Start exploring
-            </a>
+            </Link>
           </li>
         </ul>
       </GlassSurface>

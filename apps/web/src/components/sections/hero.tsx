@@ -1,14 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
-import { useExplorer } from "@/components/explorer-context";
 import { ContourField } from "@/components/primitives/contour-field";
 import { HERO_CONTENT, EXAMPLE_SEARCHES, ORBIT_ARTISTS } from "@/content/landing";
 import { useArtistImages } from "@/lib/use-artist-images";
 import { FeaturedCarousel } from "./artist-carousel";
 
 export function Hero() {
-  const { explore } = useExplorer();
   // Shares one batch lookup with the edge wheels (LandingOrbit).
   const images = useArtistImages(ORBIT_ARTISTS);
 
@@ -49,14 +48,13 @@ export function Hero() {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             <span className="type-eyebrow mr-1 text-text-3">Try</span>
             {EXAMPLE_SEARCHES.map((name) => (
-              <button
+              <Link
                 key={name}
-                type="button"
-                onClick={() => explore(name)}
+                href={`/explore?q=${encodeURIComponent(name)}`}
                 className="rounded-full border border-line-strong px-4 py-2 text-sm font-medium text-text-2 transition hover:border-electric hover:text-text"
               >
                 {name}
-              </button>
+              </Link>
             ))}
           </div>
         </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Search } from "lucide-react";
-import { useExplorer } from "@/components/explorer-context";
 import { GlassSurface } from "@/components/primitives/glass-surface";
 import { cn } from "@/lib/cn";
 
@@ -12,13 +12,20 @@ interface SearchBarProps {
   size?: "lg" | "md";
 }
 
+/**
+ * Landing search. Submitting hands the query to the explorer route rather than
+ * rendering a preview in place: `/explore?q=` is the shareable World page, and
+ * the explorer already re-runs the search for that parameter.
+ */
 export function SearchBar({ className, id = "worlds-search", size = "lg" }: SearchBarProps) {
-  const { explore } = useExplorer();
+  const router = useRouter();
   const [value, setValue] = useState("");
+  const query = value.trim();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    explore(value);
+    if (!query) return;
+    router.push(`/explore?q=${encodeURIComponent(query)}`);
   }
 
   return (
@@ -61,10 +68,12 @@ export function SearchBar({ className, id = "worlds-search", size = "lg" }: Sear
         />
         <button
           type="submit"
+          disabled={!query}
           aria-label="Explore this world"
           className={cn(
             "grid shrink-0 place-items-center rounded-full bg-electric text-on-accent transition duration-300",
-            "hover:bg-fresh hover:shadow-glow-sm active:scale-95",
+            "enabled:hover:bg-fresh enabled:hover:shadow-glow-sm enabled:active:scale-95",
+            "disabled:opacity-40",
             size === "lg" ? "size-12" : "size-9",
           )}
         >
