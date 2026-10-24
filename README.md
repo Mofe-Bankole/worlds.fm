@@ -133,7 +133,7 @@ Demonstrate the **difference** between a verified historical relationship and a 
 | Data | **Supabase-hosted PostgreSQL** | Database; migrations in `supabase/migrations` |
 | Contracts | **TypeScript + Zod** (proposed) | `packages/shared` — API request/response schemas and shared types |
 | Cultural engine | **Qloo Insights API** | Server-side integration only |
-| AI narratives | **Hosted LLM** (optional) | API-side grounded summaries only; never a required dependency for the initial journey |
+| Connection agent | **Server-side agent + hosted model** | `apps/api` — researches whether a real, sourced connection exists between two nodes; cites it or declines. Rules in AGENTS.md §12 |
 | Deployment | Separate web/API services | Separate environment and deploy logs; choose providers during M0 |
 | Repository | **GitHub monorepo** | One `main`, temporary task/feature branches |
 
@@ -144,7 +144,9 @@ flowchart TB
   A --> Q[Qloo API]
   A --> DB[(Supabase PostgreSQL)]
   A --> M[Optional licensed music metadata provider]
-  A --> L[Optional hosted LLM]
+  A --> L[Connection agent]
+  L --> Q
+  L --> S[Cultural sources: MusicBrainz, Wikidata, Wikipedia]
   W -->|approved embeds / external links| P[Music provider]
 ```
 

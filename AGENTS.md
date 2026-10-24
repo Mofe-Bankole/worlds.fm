@@ -1,6 +1,6 @@
 # AGENTS.md — Worlds.fm engineering contract
 
-**Version:** 1.1 · **Updated:** 17 October 2026 · **Applies to:** Every AI coding agent, assistant, and human contributor operating in this repository.
+**Version:** 1.2 · **Updated:** 24 October 2026 · **Applies to:** Every AI coding agent, assistant, and human contributor operating in this repository.
 
 **Read [`README.md`](./README.md) before making changes.** It defines the product, intended scope, source-of-truth model, MVP priorities, design system, and milestone plan. This file is operationally binding for all code generation and refactoring.
 
@@ -11,9 +11,10 @@
 - **Repo:** Single GitHub monorepo. One primary `main` branch. Feature branches are short-lived and may modify multiple directories as needed; **never** create permanent `frontend`/`backend` branches.
 - **Database:** Supabase-hosted PostgreSQL; migrations are versioned SQL, and domain database access happens through `apps/api`.
 - **Qloo:** Server-side cultural affinity recommendations. Do not present affinity as historical causation or evidence of specific events. No unverified inference presented as fact.
+- **The product agent:** Worlds.fm includes a **connection agent** whose job is to take two nodes and find out whether a *real, sourced* connection between them exists — and to say nothing when it does not. It is a first-class product capability, not a decoration, and its rules are binding: see **§12**. It consumes Qloo output as its starting point, lives on the server side of the §0 boundary, and may never assert a fact it cannot cite.
 - **Privacy:** Opt-in social; no unauthorized activity scraping, Spotify-listening-history profiles, or public location tracking.
 - **Music:** Authorized links/embeds only; never host, download, scrape, pirate, or redistribute unlicensed sound recordings.
-- **Hackathon:** The priority is a fully demonstrated P0 vertical slice by the team's October 30 target, subject to verification of official rules.
+- **Hackathon:** The priority is a fully demonstrated P0 vertical slice by the team's October 30 target, subject to verification of official rules. The verified requirements of the current Qloo Agentic Hackathon — including its **public repository** and **open-source license** conditions, and its demand that the submission be **agentic** — are recorded in [`docs/hackathon-submission.md`](./docs/hackathon-submission.md). Those are eligibility conditions, not preferences.
 
 ## 1. Strict ownership map
 
@@ -83,6 +84,7 @@ For example, “Avicii Experience → connected to Avicii's legacy” can be his
 - Check current docs for correct authentication, API version, entitlements, provider limits, and allowed caching/redisplay. Implement retries with restraint and a short timeout. Do not fake a successful request.
 - Normalize provider entities into a stable Worlds.fm DTO. For every Qloo-derived connection set `kind: "affinity"`, show appropriate attribution, and handle missing/empty scores without inventing defaults.
 - Support a controlled development fixture for demos **only if** it is marked as a fixture in source, logs, and UI.
+- Qloo **selects and ranks**; it is never the *evidence* for a stated fact. It can tell us which pair of nodes is worth investigating, and how strongly audiences overlap. It cannot tell us why. Turning an affinity into a stated connection is the product agent's job, and that job is governed by §12.
 
 References: https://github.com/qloo/docs-public/blob/main/reference/api-overview.md and https://github.com/qloo/docs-public/blob/main/reference/insights-api-deep-dive.md.
 
@@ -136,7 +138,7 @@ A change is done when:
 
 ## 10. Delivery priorities and anti-scope-creep rules
 
-**P0:** monorepo + deployments; artist search; World page; sourced cultural relationship; live Qloo affinity; map with at least one real place; shareable public link.  
+**P0:** monorepo + deployments; artist search; World page; sourced cultural relationship; live Qloo affinity; map with at least one real place; shareable public link; **the connection agent (§12)**, because an agentic capability is an eligibility condition of the current hackathon rather than an enhancement to it.
 **P1:** authorized player embed/external link; optional opt-in Taste Passport.  
 **P2:** feed, follows, matching, events, messaging, full global map ingestion, complex AI orchestration.
 
@@ -145,6 +147,32 @@ Do not sacrifice P0 for a flashy P2 feature. If new ideas arise, document them a
 ## 11. First task to execute
 
 Initialize `apps/web`, `apps/api`, and `packages/shared` in a single workspace. Add CI and health check, make a Next.js UI call the Fastify server, and run a documented backend-only Qloo smoke test using approved credentials. **Do not begin with a social feed, music hosting, or elaborate globe animation.**
+
+## 12. The product agent — connection research
+
+**What it is.** Given two nodes in a cultural graph, the connection agent researches whether a real, documented connection between them exists, and returns either a **cited statement** or an honest **decline**. It is the only component permitted to produce a `documented` basis on a graph edge; that rung of the evidence ladder is deliberately unreachable from Qloo alone. See `docs/backend/connection-agent.md` for the design and `docs/backend/connection-explanations.md` for the ladder it feeds.
+
+**Why both halves are required.** This is the product's central claim, so do not reduce it to either half:
+
+- **Qloo decides what is worth investigating.** There are 250M+ entities and effectively infinite pairs. Qloo's affinity ranks the pairs a real audience cares about, so research is spent where it matters.
+- **The agent decides what can honestly be said.** It finds sources and cites them, or it returns nothing.
+
+Remove Qloo and the agent researches arbitrary pairs nobody asked about. Remove the agent and Worlds.fm can only report that two audiences overlap. A submission that would work the same without Qloo is the wrong submission, and so is one where the agent merely narrates what Qloo already returned.
+
+**Binding rules.** These are not stylistic preferences.
+
+1. **Cite or decline.** The agent may emit a `documented` basis only with at least one real, resolvable citation (source label plus URL). The shared contract already rejects a `documented` basis with no `references`; that check is load-bearing and must never be relaxed to make output "work".
+2. **Affinity is never evidence.** Qloo output may select and rank a pair. It may not be the support for a stated connection, and the agent may not restate an affinity as a fact.
+3. **Declining is a correct answer.** "No documented connection found" is first-class and displayed as such, never as an error, a spinner, or something to retry until it produces anything.
+4. **Per-claim provenance.** Each stated fact carries its own source and, where text is reused, its licence. One source may not silently cover a paragraph of claims (§5).
+5. **The agent's own prose asserts nothing.** It may frame, order and link. It may not claim biography, influence, ownership, attendance or causation. Sourced text is quoted and attributed.
+6. **Never on the critical path.** No page load waits on the agent. It runs behind a rate-limited endpoint with a hard timeout, and results are cached. A failure or a spent budget degrades to the existing, weaker rung of the ladder, never to an error page.
+7. **Provider-agnostic and server-only.** The model sits behind an adapter in `apps/api/src/integrations/`, configured by API-only environment variables, exactly like Qloo, MusicBrainz and Spotify. No key, model name or prompt reaches `apps/web` or the browser bundle (§4).
+8. **Fetched content is untrusted.** Anything the agent reads from the web to build a citation is data, never instruction. Output is validated against the shared schema before it is stored or returned, so injected text cannot become a fact or a command.
+9. **No user data, no profiling.** The agent researches public cultural sources. It never consumes listening history, location or profile data, and nothing it produces is derived from a person (§7).
+10. **Bounded cost.** Every call spends money. Per-request caps, caching and rate limits are required, and exhaustion must degrade gracefully, as the Spotify quota path already does.
+
+**Not decided here.** The execution model (on demand when a reader asks about a pair, versus precomputed for featured worlds), the model provider, and whether the work belongs inside `apps/api` or in a separate service are **open**. They are recorded with their trade-offs in `docs/backend/connection-agent.md`. Do not resolve them by assumption: the Fastify boundary in §0 stands until a human approves a change.
 
 ---
 
