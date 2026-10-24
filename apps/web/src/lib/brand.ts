@@ -7,6 +7,7 @@ export const BRAND = {
   night: "#08120B",
   electric: "#00CD37",
   forest: "#2A6E4C",
+  vibrant: "#46D35D",
   mint: "#CBF2CD",
   surface1: "#0E1912",
   text: "#EEF6EF",

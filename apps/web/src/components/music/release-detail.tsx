@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { Release, ReleaseTracksResponse, Track } from "@worlds/shared";
 import { fetchReleaseTracks } from "@/lib/api/music";
 import { KIND_LABEL, formatDuration, formatPartialDate, formatRuntime } from "@/lib/music/format";
 import { useMusicResource } from "@/lib/music/use-music-resource";
+import { songPath } from "@/lib/share";
 import { CoverArt, coverCredit } from "./cover-art";
 import { ExternalLink, QuietButton, SpotifyButton } from "./links";
 import { TrackStory } from "./track-story";
@@ -130,7 +132,14 @@ function TrackList({ data, onSearchName }: { data: ReleaseTracksResponse; onSear
                     <span className="font-mono text-xs text-text-3 tabular-nums">{track.number}</span>
                     <div className="min-w-0">
                       <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-text">
-                        <span className="truncate">{track.title}</span>
+                        {/* Every song has its own page, so the title is the link
+                            to it: the row no longer needs a separate control. */}
+                        <Link
+                          href={songPath(track.recordingMbid)}
+                          className="truncate underline-offset-4 hover:text-vibrant hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
+                        >
+                          {track.title}
+                        </Link>
                         {track.explicit ? (
                           <abbr
                             title="Explicit"

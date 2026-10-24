@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   isShareableName,
+  isSongId,
   normalizeShareName,
   ogCardFontSize,
   ogCardName,
   resolveShareOrigin,
   SHARE_NAME_MAX,
+  songDescription,
+  songPath,
+  songShareTarget,
+  songUrl,
   worldDescription,
   worldPath,
-  worldShareData,
+  worldShareTarget,
   worldUrl,
 } from "@/lib/share";
 import { siteUrl } from "@/lib/site";
@@ -98,16 +103,81 @@ describe("resolveShareOrigin", () => {
   });
 });
 
-describe("worldShareData", () => {
+describe("worldShareTarget", () => {
   it("names the artist and links to their world", () => {
-    const data = worldShareData("Tame Impala", "https://worlds.fm");
+    const data = worldShareTarget("Tame Impala", "https://worlds.fm");
     expect(data.title).toBe("Tame Impala — Worlds.fm");
     expect(data.text).toContain("Tame Impala");
     expect(data.url).toBe("https://worlds.fm/explore?q=Tame+Impala");
   });
 
   it("normalizes the name it is given", () => {
-    expect(worldShareData("  Avicii  ", "https://worlds.fm").url).toBe("https://worlds.fm/explore?q=Avicii");
+    expect(worldShareTarget("  Avicii  ", "https://worlds.fm").url).toBe("https://worlds.fm/explore?q=Avicii");
+  });
+});
+
+describe("songPath and songUrl", () => {
+  const MBID = "3f0f4a1e-1111-4222-8333-444455556666";
+
+  it("addresses a song by recording ID in a path segment", () => {
+    expect(songPath(MBID)).toBe(`/song/${MBID}`);
+    expect(songUrl(MBID, "https://worlds.fm")).toBe(`https://worlds.fm/song/${MBID}`);
+    expect(songUrl(MBID, "https://worlds.fm/")).toBe(`https://worlds.fm/song/${MBID}`);
+  });
+
+  it("needs no encoding, so the ID round-trips exactly", () => {
+    expect(songPath(MBID).slice("/song/".length)).toBe(MBID);
+  });
+
+  it("accepts only well-formed MusicBrainz IDs", () => {
+    expect(isSongId(MBID)).toBe(true);
+    expect(isSongId(MBID.toUpperCase())).toBe(true);
+    for (const value of ["", "not-a-uuid", MBID.slice(0, -1), `${MBID}x`, "AC/DC", null, undefined]) {
+      expect(isSongId(value)).toBe(false);
+    }
+  });
+});
+
+describe("songShareTarget", () => {
+  const MBID = "3f0f4a1e-1111-4222-8333-444455556666";
+
+  it("names the song, the artist and where the facts come from", () => {
+    const data = songShareTarget({ recordingMbid: MBID, title: "Let It Happen", artist: "Tame Impala" }, "https://worlds.fm");
+    expect(data.title).toBe("Let It Happen by Tame Impala — Worlds.fm");
+    expect(data.text).toContain("Let It Happen");
+    expect(data.text).toContain("Tame Impala");
+    expect(data.url).toBe(`https://worlds.fm/song/${MBID}`);
+  });
+
+  it("does not invent an artist when the credit is missing", () => {
+    const data = songShareTarget({ recordingMbid: MBID, title: "Untitled", artist: null }, "https://worlds.fm");
+    expect(data.title).toBe("Untitled — Worlds.fm");
+    expect(data.text).not.toContain(" by ");
+    expect(data.text).not.toContain("null");
+  });
+
+  it("trims the values it is given, so a link is stable", () => {
+    const data = songShareTarget({ recordingMbid: MBID, title: "  Let It Happen ", artist: " Tame Impala " }, "https://worlds.fm");
+    expect(data.title).toBe("Let It Happen by Tame Impala — Worlds.fm");
+  });
+});
+
+describe("songDescription", () => {
+  it("names the song, the artist and the sources", () => {
+    const text = songDescription("Let It Happen", "Tame Impala");
+    expect(text).toContain("Let It Happen by Tame Impala");
+    expect(text).toContain("MusicBrainz");
+  });
+
+  it("makes no claim beyond what the page shows", () => {
+    const text = songDescription("Let It Happen", "Tame Impala");
+    expect(text).not.toMatch(/endorse|inspired|influence|caused/i);
+    // The story cites sources; it is not written by us.
+    expect(text).toContain("cited facts");
+  });
+
+  it("reads correctly without an artist", () => {
+    expect(songDescription("Untitled", null)).toContain("The story of Untitled:");
   });
 });
 

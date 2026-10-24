@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import type { CreditRole, LinkedRecording, RecordingStoryResponse } from "@worlds/shared";
+import { ShareControl } from "@/components/share/share-control";
 import { fetchRecordingStory } from "@/lib/api/music";
 import { isSingleArtistCredit } from "@/lib/music/format";
 import { useMusicResource } from "@/lib/music/use-music-resource";
+import { songPath, songShareTarget, worldPath } from "@/lib/share";
 import { ExternalLink, QuietButton } from "./links";
 
 const ROLE_LABEL: Record<CreditRole, string> = {
@@ -18,6 +21,10 @@ const ROLE_LABEL: Record<CreditRole, string> = {
  * The sourced story behind one recording: who made it, what it samples, who
  * sampled or re-recorded it, and facts quoted from Wikipedia or Wikidata.
  * Nothing here is generated; an empty source shows as empty.
+ *
+ * `onSearchName` is for the explorer, where choosing an artist starts a new
+ * search in place. Without it (on a song page, which is server-rendered) an
+ * artist name links to that artist's World instead.
  */
 export function TrackStory({
   id,
@@ -28,7 +35,7 @@ export function TrackStory({
   id: string;
   recordingMbid: string;
   title: string;
-  onSearchName: (name: string) => void;
+  onSearchName?: (name: string) => void;
 }) {
   const { state, reload } = useMusicResource(`story:${recordingMbid}`, (signal) =>
     fetchRecordingStory(recordingMbid, { signal }),
@@ -50,13 +57,27 @@ export function TrackStory({
           {state.result.retryable ? <QuietButton onClick={reload}>Try again</QuietButton> : null}
         </div>
       ) : (
-        <StoryBody data={state.result.data} onSearchName={onSearchName} />
+        <StoryBody data={state.result.data} onSearchName={onSearchName} inExplorer />
       )}
     </div>
   );
 }
 
-function StoryBody({ data, onSearchName }: { data: RecordingStoryResponse; onSearchName: (name: string) => void }) {
+/** The story itself, without the panel chrome, so a page can render it directly. */
+export function StoryBody({
+  data,
+  onSearchName,
+  inExplorer = false,
+}: {
+  data: RecordingStoryResponse;
+  onSearchName?: (name: string) => void;
+  /**
+   * True inside the explorer, where the panel is the only place this song is
+   * described and so it carries the song-page link and the share control. A
+   * song page has both already, in its header.
+   */
+  inExplorer?: boolean;
+}) {
   const summary = data.facts.find((f) => f.kind === "summary");
   const honours = data.facts.filter((f) => f.kind !== "summary");
   const connections: Array<{ title: string; items: LinkedRecording[] }> = [
@@ -139,13 +160,7 @@ function StoryBody({ data, onSearchName }: { data: RecordingStoryResponse; onSea
                     <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-2">
                       {item.artist ? <span>{item.artist}</span> : null}
                       {isSingleArtistCredit(item.artist) ? (
-                        <button
-                          type="button"
-                          onClick={() => onSearchName(item.artist as string)}
-                          className="font-semibold text-vibrant underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
-                        >
-                          Explore world
-                        </button>
+                        <ArtistWorldAction name={item.artist as string} onSearchName={onSearchName} />
                       ) : null}
                       <ExternalLink href={item.musicbrainzUrl} label={`${item.title} on MusicBrainz`}>
                         MusicBrainz
@@ -163,11 +178,60 @@ function StoryBody({ data, onSearchName }: { data: RecordingStoryResponse; onSea
         <p className="text-sm text-text-2">MusicBrainz has no credits or connections for this recording yet.</p>
       ) : null}
 
-      <p className="flex flex-wrap gap-x-3 gap-y-1 border-t border-line pt-3 text-[0.6875rem] text-text-3">
-        <span>Credits and connections from MusicBrainz (CC0).</span>
-        {data.recording.isrcs[0] ? <span className="font-mono">ISRC {data.recording.isrcs[0]}</span> : null}
-        <ExternalLink href={data.recording.musicbrainzUrl}>Missing something? Add it on MusicBrainz</ExternalLink>
-      </p>
+      <div className="space-y-3 border-t border-line pt-3">
+        <p className="flex flex-wrap gap-x-3 gap-y-1 text-[0.6875rem] text-text-3">
+          <span>Credits and connections from MusicBrainz (CC0).</span>
+          {data.recording.isrcs[0] ? <span className="font-mono">ISRC {data.recording.isrcs[0]}</span> : null}
+          <ExternalLink href={data.recording.musicbrainzUrl}>Missing something? Add it on MusicBrainz</ExternalLink>
+        </p>
+        {inExplorer ? (
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+            <Link
+              href={songPath(data.recording.mbid)}
+              className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-vibrant underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
+            >
+              Open this song’s page
+            </Link>
+            <ShareControl
+              subject={data.recording.title}
+              buildTarget={(origin) =>
+                songShareTarget(
+                  {
+                    recordingMbid: data.recording.mbid,
+                    title: data.recording.title,
+                    artist: data.recording.artistCredit,
+                  },
+                  origin,
+                )
+              }
+              fieldLabel="Link to this song"
+              note={null}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Opens an artist's World. In the explorer it starts a new search in place;
+ * elsewhere it is a link, because the story may be server-rendered and a
+ * callback cannot cross that boundary.
+ */
+function ArtistWorldAction({ name, onSearchName }: { name: string; onSearchName?: (name: string) => void }) {
+  const className =
+    "font-semibold text-vibrant underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric";
+  if (onSearchName) {
+    return (
+      <button type="button" onClick={() => onSearchName(name)} className={className}>
+        Explore world
+      </button>
+    );
+  }
+  return (
+    <Link href={worldPath(name)} className={className}>
+      Explore world
+    </Link>
   );
 }

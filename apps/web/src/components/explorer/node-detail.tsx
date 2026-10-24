@@ -6,6 +6,7 @@ import { SignalAction, SignalCard } from "@/components/primitives/signal-card";
 import { StripedImage } from "@/components/primitives/striped-image";
 import { ShareControl } from "@/components/share/share-control";
 import { CATEGORY_META, describeCounts, firstSentence, formatAffinity } from "@/lib/explorer/model";
+import { worldShareTarget } from "@/lib/share";
 import { CategoryIcon } from "./shape-icon";
 import { NodeShape } from "./constellation";
 
@@ -74,7 +75,10 @@ export function RootCard({
         <div className="space-y-3">
           {/* The World is addressed by the resolved artist name, so a shared
               link reopens this same world rather than the raw search text. */}
-          <ShareControl name={node.name} />
+          <ShareControl
+            subject={node.name}
+            buildTarget={(origin) => worldShareTarget(node.name, origin)}
+          />
           <SignalAction onClick={onToggleView}>
             {view === "constellation" ? "View as a list" : "View the constellation"}
           </SignalAction>
@@ -141,7 +145,8 @@ export function NodeCard({
             </div>
             {/* Only artists have a World to open, so only artists are shareable. */}
             <ShareControl
-              name={node.name}
+              subject={node.name}
+              buildTarget={(origin) => worldShareTarget(node.name, origin)}
               note="Anyone with this link sees this artist’s world. Nothing personal is included."
             />
           </div>

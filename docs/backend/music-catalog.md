@@ -37,6 +37,10 @@ All MusicBrainz callers (media resolver and music catalogue) share one throttled
 
 Credits (written, produced, performed, mixed, engineered by), `samples`, `sampledBy`, `otherVersions` (same work, other artists, up to 8), and `facts`: the Wikipedia summary (with licence) and Wikidata awards/nominations. Wikimedia failures return empty `facts`.
 
+This endpoint has two consumers and one source of truth. The explorer opens it in a track's story panel, and the web app's `/song/<mbid>` page renders the same body as a page of its own. Nothing was added to the contract for the page: a song got an address, not a new API. See `docs/share-links.md`.
+
+The response is cached for an hour (`cache-control: public, max-age=3600`), which is what makes the page's server-side lookup cheap after the first visitor. A cold lookup costs several throttled MusicBrainz requests, measured at 2.6-4.5s.
+
 ## Errors
 
 Stable envelope `{ error: { code, message, requestId } }`:

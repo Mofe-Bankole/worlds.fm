@@ -1,5 +1,5 @@
 /**
- * Shareable World links.
+ * Shareable links: artist Worlds and individual songs.
  *
  * A World is addressed by artist name in the query string:
  * `/explore?q=Tame%20Impala`. A query parameter is used rather than a path
@@ -8,10 +8,16 @@
  * rewritten by many servers and proxies. The query form is lossless for every
  * name the API can return.
  *
- * A share link carries the artist name and nothing else. There are no accounts
- * yet, so there is nothing personal to leak, and these helpers deliberately
- * have no way to add anything: the URL is built from the name alone.
+ * A song is addressed by MusicBrainz recording ID in a path segment:
+ * `/song/<uuid>`. An ID needs neither encoding nor normalization, so the two
+ * destinations use the form each one actually needs.
+ *
+ * A share link carries the name or the ID and nothing else. There are no
+ * accounts yet, so there is nothing personal to leak, and these helpers
+ * deliberately have no way to add anything.
  */
+
+import { musicBrainzIdSchema } from "@worlds/shared";
 
 /** Where a World lives. */
 export const WORLD_PATH = "/explore";
@@ -73,15 +79,44 @@ export function resolveShareOrigin(fallback = "http://localhost:3000"): string {
   return fallback;
 }
 
+/* ---------------------------------- Songs ---------------------------------- */
+
 /**
- * Web Share API payload. The text names the artist so the message reads well in
- * a chat app, and the URL is passed separately so the platform can build its own
- * preview from our Open Graph tags.
+ * Where a song lives. A MusicBrainz recording ID is a UUID, so unlike an artist
+ * name it survives a path segment untouched.
  */
-export function worldShareData(
-  name: string,
-  origin: string,
-): { title: string; text: string; url: string } {
+export const SONG_PATH = "/song";
+
+/** True when a value can address a song page. */
+export function isSongId(value: string | null | undefined): boolean {
+  return typeof value === "string" && musicBrainzIdSchema.safeParse(value).success;
+}
+
+/** Relative path for a song: what goes in a canonical tag and in `href`. */
+export function songPath(recordingMbid: string): string {
+  return `${SONG_PATH}/${recordingMbid}`;
+}
+
+/** Absolute URL for a song. `origin` is passed in so this stays a pure function. */
+export function songUrl(recordingMbid: string, origin: string): string {
+  return `${origin.replace(/\/+$/, "")}${songPath(recordingMbid)}`;
+}
+
+/* ------------------------------ Share targets ------------------------------ */
+
+/**
+ * What a share control sends. Built from an origin at the moment of sharing, so
+ * nothing about the visitor and nothing about the deployment is baked in at
+ * build time.
+ */
+export interface ShareTarget {
+  title: string;
+  text: string;
+  url: string;
+}
+
+/** Share payload for an artist's World. */
+export function worldShareTarget(name: string, origin: string): ShareTarget {
   const clean = normalizeShareName(name);
   return {
     title: `${clean} — Worlds.fm`,
@@ -90,10 +125,40 @@ export function worldShareData(
   };
 }
 
+/**
+ * Share payload for one song. The artist is named only when it is known, so the
+ * message never implies an attribution the page cannot show.
+ */
+export function songShareTarget(
+  song: { recordingMbid: string; title: string; artist: string | null },
+  origin: string,
+): ShareTarget {
+  const title = song.title.trim();
+  const by = song.artist?.trim();
+  return {
+    title: by ? `${title} by ${by} — Worlds.fm` : `${title} — Worlds.fm`,
+    text: by
+      ? `The story of ${title} by ${by} on Worlds.fm: credits, samples, other versions and cited facts.`
+      : `The story of ${title} on Worlds.fm: credits, samples, other versions and cited facts.`,
+    url: songUrl(song.recordingMbid, origin),
+  };
+}
+
 /** One-line description reused by the page metadata and the share card. */
 export function worldDescription(name: string): string {
   const clean = normalizeShareName(name);
   return `Explore ${clean}’s cultural world: the artists, places, brands and destinations connected to them, each labelled with what the link is based on.`;
+}
+
+/**
+ * One-line description for a song page. It names the sources, so a preview does
+ * not read as though Worlds.fm wrote the story itself.
+ */
+export function songDescription(title: string, artist: string | null): string {
+  const cleanTitle = title.trim();
+  const by = artist?.trim();
+  const subject = by ? `${cleanTitle} by ${by}` : cleanTitle;
+  return `The story of ${subject}: credits, samples, other versions and cited facts, from MusicBrainz, Wikidata and Wikipedia.`;
 }
 
 /* ------------------------------- Share card -------------------------------- */

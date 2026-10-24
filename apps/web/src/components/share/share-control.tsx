@@ -3,13 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import {
-  isShareableName,
-  normalizeShareName,
-  resolveShareOrigin,
-  worldShareData,
-  worldUrl,
-} from "@/lib/share";
+import { resolveShareOrigin, type ShareTarget } from "@/lib/share";
 
 type Status =
   | { kind: "idle" }
@@ -28,21 +22,30 @@ const hasNativeShare = () =>
 const neverHasNativeShare = () => false;
 
 /**
- * Share one World or artist.
+ * Share one destination: an artist's World or a song.
  *
- * The link is built on demand from the name, so nothing about the visitor is
- * ever included. "Copy link" always works; the native share sheet is offered
- * only where the browser provides it. When the clipboard is unavailable (an
- * insecure origin, or a denied permission) the link is revealed in a field the
- * visitor can copy from, rather than failing silently.
+ * The link is built on demand from an origin, so nothing about the visitor or
+ * the deployment is baked in. "Copy link" always works; the native share sheet
+ * is offered only where the browser provides it. When the clipboard is
+ * unavailable (an insecure origin, or a denied permission) the link is revealed
+ * in a field the visitor can copy from, rather than failing silently.
  */
 export function ShareControl({
-  name,
+  subject,
+  buildTarget,
+  fieldLabel,
   className,
   note = "Anyone with this link sees this world. Nothing personal is included.",
 }: {
-  /** Artist name. The World is whatever the explorer resolves this name to. */
-  name: string;
+  /** What is being shared: an artist name or a song title. Used in labels. */
+  subject: string;
+  /**
+   * Builds the payload for an origin. Called when the visitor shares, so the
+   * URL uses the origin actually being viewed.
+   */
+  buildTarget: (origin: string) => ShareTarget;
+  /** Accessible name for the revealed link field. */
+  fieldLabel?: string;
   className?: string;
   note?: string | null;
 }) {
@@ -54,7 +57,7 @@ export function ShareControl({
     hasNativeShare,
     neverHasNativeShare,
   );
-  const clean = normalizeShareName(name);
+  const label = subject.trim();
 
   // Move focus into the revealed link so it can be copied with the keyboard.
   useEffect(() => {
@@ -64,7 +67,7 @@ export function ShareControl({
   }, [status.kind]);
 
   const copy = useCallback(async () => {
-    const url = worldUrl(clean, resolveShareOrigin());
+    const { url } = buildTarget(resolveShareOrigin());
     try {
       if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
         throw new Error("clipboard unavailable");
@@ -74,20 +77,20 @@ export function ShareControl({
     } catch {
       setStatus({ kind: "manual", url });
     }
-  }, [clean]);
+  }, [buildTarget]);
 
   const share = useCallback(async () => {
     try {
-      await navigator.share(worldShareData(clean, resolveShareOrigin()));
+      await navigator.share(buildTarget(resolveShareOrigin()));
       setStatus({ kind: "idle" });
     } catch (error) {
       // Dismissing the OS share sheet is a normal outcome, not a failure.
       if (error instanceof DOMException && error.name === "AbortError") return;
-      setStatus({ kind: "manual", url: worldUrl(clean, resolveShareOrigin()) });
+      setStatus({ kind: "manual", url: buildTarget(resolveShareOrigin()).url });
     }
-  }, [clean]);
+  }, [buildTarget]);
 
-  if (!isShareableName(clean)) return null;
+  if (label.length === 0) return null;
 
   const buttonClass =
     "inline-flex items-center gap-1.5 border border-line-strong px-3 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric";
@@ -106,7 +109,7 @@ export function ShareControl({
         {canNativeShare ? (
           <button type="button" onClick={share} className={buttonClass}>
             <Share2 aria-hidden="true" className="size-3.5" />
-            Share<span className="sr-only"> {clean} using your device</span>
+            Share<span className="sr-only"> {label} using your device</span>
             <span aria-hidden="true">…</span>
           </button>
         ) : null}
@@ -115,7 +118,7 @@ export function ShareControl({
       {status.kind === "manual" ? (
         <div className="space-y-1">
           <label htmlFor={inputId} className="sr-only">
-            Link to {clean}’s world
+            {fieldLabel ?? `Link to ${label}`}
           </label>
           <input
             id={inputId}
