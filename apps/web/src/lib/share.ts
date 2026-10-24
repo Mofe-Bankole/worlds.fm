@@ -144,6 +144,61 @@ export function songShareTarget(
   };
 }
 
+/**
+ * Destinations offered by the share dialog. Each one is a plain, documented
+ * share/intent endpoint; no SDK and no third-party script is involved.
+ */
+export type ShareChannel = "google" | "telegram" | "whatsapp" | "facebook" | "instagram";
+
+function query(params: Record<string, string>): string {
+  return new URLSearchParams(params).toString();
+}
+
+/** Gmail compose, so the link arrives as an ordinary email the sender controls. */
+export function googleShareUrl(target: ShareTarget): string {
+  return `https://mail.google.com/mail/?${query({
+    view: "cm",
+    fs: "1",
+    su: target.title,
+    body: `${target.text}\n\n${target.url}`,
+  })}`;
+}
+
+/** Telegram's documented share link: the URL is text the user can still edit. */
+export function telegramShareUrl(target: ShareTarget): string {
+  return `https://t.me/share/url?${query({ url: target.url, text: target.title })}`;
+}
+
+/** WhatsApp click-to-chat with no recipient, so the visitor picks the chat. */
+export function whatsappShareUrl(target: ShareTarget): string {
+  return `https://wa.me/?${query({ text: `${target.title} ${target.url}` })}`;
+}
+
+/** Facebook's sharer, which reads the URL's own Open Graph tags. */
+export function facebookShareUrl(target: ShareTarget): string {
+  return `https://www.facebook.com/sharer/sharer.php?${query({ u: target.url })}`;
+}
+
+/**
+ * The URL one channel opens, or `null` when the service publishes no web share
+ * endpoint. Instagram is the `null` case: the dialog copies the link instead of
+ * pretending an intent exists.
+ */
+export function shareChannelUrl(channel: ShareChannel, target: ShareTarget): string | null {
+  switch (channel) {
+    case "google":
+      return googleShareUrl(target);
+    case "telegram":
+      return telegramShareUrl(target);
+    case "whatsapp":
+      return whatsappShareUrl(target);
+    case "facebook":
+      return facebookShareUrl(target);
+    case "instagram":
+      return null;
+  }
+}
+
 /** One-line description reused by the page metadata and the share card. */
 export function worldDescription(name: string): string {
   const clean = normalizeShareName(name);

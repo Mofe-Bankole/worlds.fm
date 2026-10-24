@@ -1,16 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  facebookShareUrl,
+  googleShareUrl,
   isShareableName,
   isSongId,
   normalizeShareName,
   ogCardFontSize,
   ogCardName,
   resolveShareOrigin,
+  shareChannelUrl,
   SHARE_NAME_MAX,
   songDescription,
   songPath,
   songShareTarget,
   songUrl,
+  telegramShareUrl,
+  whatsappShareUrl,
   worldDescription,
   worldPath,
   worldShareTarget,
@@ -202,6 +207,60 @@ describe("share card helpers", () => {
     for (let i = 1; i < sizes.length; i += 1) {
       expect(sizes[i]).toBeLessThan(sizes[i - 1] as number);
     }
+  });
+});
+
+describe("share channel links", () => {
+  const target = {
+    title: "Tame Impala — Worlds.fm",
+    text: "Explore Tame Impala’s world on Worlds.fm.",
+    url: "https://worlds.fm/explore?q=Tame+Impala",
+  };
+
+  it("composes a Gmail draft with the title, text and link", () => {
+    const link = new URL(googleShareUrl(target));
+    expect(link.origin + link.pathname).toBe("https://mail.google.com/mail/");
+    expect(link.searchParams.get("view")).toBe("cm");
+    expect(link.searchParams.get("su")).toBe(target.title);
+    expect(link.searchParams.get("body")).toContain(target.text);
+    expect(link.searchParams.get("body")).toContain(target.url);
+  });
+
+  it("uses Telegram's share endpoint with both url and text", () => {
+    const link = new URL(telegramShareUrl(target));
+    expect(link.origin + link.pathname).toBe("https://t.me/share/url");
+    expect(link.searchParams.get("url")).toBe(target.url);
+    expect(link.searchParams.get("text")).toBe(target.title);
+  });
+
+  it("puts the title and link into one WhatsApp message", () => {
+    const link = new URL(whatsappShareUrl(target));
+    expect(link.origin + link.pathname).toBe("https://wa.me/");
+    expect(link.searchParams.get("text")).toBe(`${target.title} ${target.url}`);
+  });
+
+  it("passes only the address to Facebook's sharer", () => {
+    const link = new URL(facebookShareUrl(target));
+    expect(link.origin + link.pathname).toBe("https://www.facebook.com/sharer/sharer.php");
+    expect(link.searchParams.get("u")).toBe(target.url);
+  });
+
+  it("maps every channel, and declines the one with no web endpoint", () => {
+    for (const channel of ["google", "telegram", "whatsapp", "facebook"] as const) {
+      expect(shareChannelUrl(channel, target)).toBeTruthy();
+    }
+    expect(shareChannelUrl("instagram", target)).toBeNull();
+  });
+
+  it("encodes a name that would otherwise break the query", () => {
+    const tricky = {
+      title: "AC/DC & friends?",
+      text: "A & B",
+      url: "https://worlds.fm/explore?q=AC%2FDC+%26+friends%3F",
+    };
+    const link = new URL(telegramShareUrl(tricky));
+    expect(link.searchParams.get("url")).toBe(tricky.url);
+    expect(link.searchParams.get("text")).toBe(tricky.title);
   });
 });
 
