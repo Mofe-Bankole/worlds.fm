@@ -10,17 +10,31 @@ import {
 } from "@worlds/shared";
 
 import { buildCulturalGraph } from "../graph/cultural-graph-builder.js";
+import type { RootTraits } from "../graph/connection-explanation.js";
 import { mapQlooError } from "../integrations/qloo/errors.js";
 import type { QlooAdapter } from "../integrations/qloo/index.js";
+import type { MusicBrainzCatalog } from "../integrations/musicbrainz/index.js";
 import { TtlCache, type TtlCacheOptions } from "../lib/cache.js";
 import { ApiError } from "../lib/errors.js";
-import { normalizeName } from "../lib/matching.js";
+import { namesMatch, normalizeName } from "../lib/matching.js";
 
 /** Graph size for a first constellation: root plus up to 15 neighbours. */
 export const DISCOVERY_MAX_NODES = 16;
 
+/**
+ * Genres to keep for the root artist. Enough to find a shared genre with most
+ * neighbours without letting one node carry the whole taxonomy.
+ */
+const MAX_ROOT_GENRES = 6;
+
 export interface CulturalDiscoveryServiceOptions {
   adapter: QlooAdapter;
+  /**
+   * Used only to describe the root artist, because Qloo's search endpoint
+   * returns no genres. Optional: without it the graph is unchanged, just less
+   * specific about the root.
+   */
+  musicBrainz?: MusicBrainzCatalog;
   /** `ttlMs` caches complete results; `negativeTtlMs` the shorter partial/no-match ones. */
   cache: TtlCacheOptions;
 }
@@ -39,11 +53,13 @@ export interface DiscoveryResult {
  */
 export class CulturalDiscoveryService {
   private readonly adapter: QlooAdapter;
+  private readonly musicBrainz: MusicBrainzCatalog | undefined;
   private readonly cache: TtlCache<CulturalDiscoveryResponse>;
   private readonly inFlight = new Map<string, Promise<CulturalDiscoveryResponse>>();
 
   constructor(options: CulturalDiscoveryServiceOptions) {
     this.adapter = options.adapter;
+    this.musicBrainz = options.musicBrainz;
     this.cache = new TtlCache(options.cache);
   }
 
@@ -120,6 +136,12 @@ export class CulturalDiscoveryService {
       });
     }
 
+    // Started here rather than before the search so that a name we end up
+    // asking the reader to disambiguate costs no MusicBrainz requests. It runs
+    // alongside the insights, which are the bulk of the wait, and is awaited
+    // only after them: MusicBrainz is throttled to one request a second, so
+    // awaiting it earlier would serialise that delay into every uncached graph.
+    const traitsPromise = this.resolveRootTraits(input.query);
     const settled = await Promise.allSettled(
       DISCOVERY_CATEGORIES.map((category) =>
         this.adapter.getInsights({ entityId: root.id, targetType: category, limit: input.limit })
@@ -153,9 +175,10 @@ export class CulturalDiscoveryService {
       throw allFailedError(failures);
     }
 
+    const rootTraits = await traitsPromise;
     const graph = culturalGraphSchema.parse(
       buildCulturalGraph(
-        { root, insights: successes },
+        { root, insights: successes, rootTraits },
         { maxNodes: DISCOVERY_MAX_NODES, maxPerCategory: input.limit }
       )
     );
@@ -169,6 +192,36 @@ export class CulturalDiscoveryService {
       categories,
       warnings
     });
+  }
+
+  /**
+   * The root artist's genres from MusicBrainz, which Qloo's search endpoint
+   * does not supply. Best-effort throughout: this only sharpens how a link is
+   * described, so any failure or doubt returns null rather than a guess.
+   *
+   * Only a single exact-name match is accepted. When several artists share the
+   * name, attaching one of their genres to the wrong artist would be worse than
+   * saying nothing.
+   */
+  private async resolveRootTraits(name: string): Promise<RootTraits | null> {
+    if (!this.musicBrainz) return null;
+    try {
+      const found = await this.musicBrainz.searchArtists(name);
+      const exact = found.filter((artist) => namesMatch(artist.name, name));
+      const only = exact.length === 1 ? exact[0] : undefined;
+      if (!only) return null;
+
+      const artist = await this.musicBrainz.lookupArtistGenres(only.id);
+      const genres = [...(artist?.genres ?? [])]
+        .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+        .map((genre) => genre.name)
+        .slice(0, MAX_ROOT_GENRES);
+      if (genres.length === 0) return null;
+      return { genres, sourceLabel: "MusicBrainz" };
+    } catch {
+      // A missing enrichment must never fail a graph that is otherwise fine.
+      return null;
+    }
   }
 
   /** Validates, then stores. `short` selects the shorter TTL (partial or no-match). */

@@ -72,8 +72,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     maxEntries: config.mediaCacheMaxEntries
   };
   const resolver = buildMediaResolver(config, http);
+  // One catalogue shared by the graph and music routes, so both read the same
+  // cached artist lookups instead of fetching the same artist twice.
+  const musicBrainz = new MusicBrainzCatalog({ http: http.musicBrainz, cache: cacheOptions });
   await app.register(healthRoutes);
-  await app.register(mediaRoutes, { resolver });  const qlooAdapter = buildQlooAdapter(config, options.fetchFn);
+  await app.register(mediaRoutes, { resolver });
+  const qlooAdapter = buildQlooAdapter(config, options.fetchFn);
   await app.register(qlooRoutes, {
     adapter: qlooAdapter,
     rateLimitPerMinute: config.qlooRateLimitPerMinute
@@ -81,6 +85,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(graphRoutes, {
     service: new CulturalDiscoveryService({
       adapter: qlooAdapter,
+      musicBrainz,
       cache: {
         ttlMs: config.qlooCacheTtlMs,
         negativeTtlMs: config.qlooNegativeCacheTtlMs,
@@ -91,7 +96,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
   await app.register(musicRoutes, {
     service: new MusicCatalogService({
-      musicBrainz: new MusicBrainzCatalog({ http: http.musicBrainz, cache: cacheOptions }),
+      musicBrainz,
       spotify: new SpotifyAdapter({
         http: http.provider,
         ...(options.fetchFn !== undefined ? { fetchFn: options.fetchFn } : {}),

@@ -13,7 +13,7 @@ import {
   type QlooInsightsResponse
 } from "@worlds/shared";
 
-import { explainConnection } from "./connection-explanation.js";
+import { explainConnection, type RootTraits } from "./connection-explanation.js";
 
 export const DEFAULT_MAX_NODES = 25;
 export const DEFAULT_MAX_PER_CATEGORY = 10;
@@ -23,6 +23,11 @@ export interface BuildCulturalGraphInput {
   root: QlooEntity;
   /** Normalized B1.1 Insights responses anchored on `root`. */
   insights: readonly QlooInsightsResponse[];
+  /**
+   * The root's traits from another source. The provider's search endpoint
+   * returns no genres, so without this no root-to-node trait could be shared.
+   */
+  rootTraits?: RootTraits | null;
 }
 
 export interface BuildCulturalGraphOptions {
@@ -164,7 +169,8 @@ export function buildCulturalGraph(
         root: parsedRoot.data,
         target: parsed.data,
         rootCategory: rootNode.category,
-        targetCategory: node.category
+        targetCategory: node.category,
+        rootTraits: input.rootTraits ?? null
       });
       const edge: CulturalEdge = {
         id: affinityEdgeId(rootNode.id, node.id),

@@ -41,7 +41,7 @@ export const BASIS: Record<ConnectionBasis, BasisMeta> = {
   shared_attribute: {
     label: "Shared trait",
     meaning:
-      "The two entities share a trait Qloo records for both, such as a genre or an audience description. A shared trait is not a documented connection.",
+      "The two entities share a trait recorded for both, such as a genre or an audience description. The sources that recorded it are named beside the statement. A shared trait is not a documented connection.",
     icon: "link",
     dashArray: "2 3",
     toneClass: "text-fresh",

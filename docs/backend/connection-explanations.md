@@ -17,7 +17,7 @@ Tried strongest first; the first rung with evidence wins.
 |---|---|---|
 | `documented` | A cited source states the relationship. Requires `references`. | **No** — see below |
 | `provider_attribute` | The provider states a relationship between the two, such as one listing the other among its influences, collaborators or labels. | Yes |
-| `shared_attribute` | The two share a trait the provider records for both: a genre, a theme, or an audience description. | Yes |
+| `shared_attribute` | The two share a trait recorded for both: a genre, a theme, or an audience description. The sources that recorded it are named on the edge. | Yes, and with MusicBrainz for genres |
 | `audience_overlap` | Nothing but the affinity score. | Yes |
 
 `documented` is deliberately unreachable from a Qloo response. Qloo output is a
@@ -40,7 +40,7 @@ Statements attribute these to Qloo rather than asserting them as history:
 "Qloo lists Tame Impala among Pond's collaborators", not "Tame Impala
 collaborated with Pond".
 
-## Known limitation: the root entity has thin properties
+## Where the root's genres come from
 
 The root entity comes from `GET /search`, which returns a much smaller
 `properties` object than `GET /v2/insights`. Measured live on 2026-10-24:
@@ -50,27 +50,53 @@ The root entity comes from `GET /search`, which returns a much smaller
 | `/search` | 5 | absent |
 | `/v2/insights` | 29–33 | present |
 
-So a root artist currently has no genres, and a shared-genre statement can
-never be produced between the root and a node. Shared **audience** traits still
-work, because `/search` does return `urn:tag:audience:*` tags, which is why
-live graphs still produce specific statements for artists.
+So the root artist has no genres of its own, and a shared-**genre** statement
+between the root and a node could never be produced. Shared **audience** traits
+still worked, because `/search` does return `urn:tag:audience:*` tags.
 
-Options for closing this, none implemented yet:
+This is now closed with **MusicBrainz**, not with another Qloo call:
+`resolveRootTraits()` in `cultural-discovery.ts` looks the root up by name and
+reads `?inc=genres`, a curated taxonomy that returns clean genres
+("psychedelic rock") rather than the folksonomy noise ("australian",
+"favourite") that `tags` carries. Genres are sorted by how many releases
+MusicBrainz counts for them, capped at six.
 
-1. Add `genres` or `tags` to the existing MusicBrainz artist lookup and use it
-   for the root. Free in requests when the artist is already looked up, but the
-   graph route does not currently consult MusicBrainz, and its 1 request/second
-   limit would apply.
-2. Resolve the root's full entity through `/v2/insights` (one extra Qloo call,
-   and the root is not guaranteed to appear among its own neighbours).
-3. Leave it: the ladder already falls back honestly.
+Three properties matter:
+
+- **It never fails the graph.** Any MusicBrainz error, timeout or empty result
+  resolves to `null`, and the ladder falls back to the weaker rungs. A failed
+  lookup costs the reader a stronger statement, never a working page.
+- **It refuses to guess.** Only a *single exact-name* match is accepted. Names
+  that are ambiguous on MusicBrainz get no genres at all rather than another
+  artist's genres. This is not hypothetical: "Michael Jackson" has **seven**
+  exact-name matches (the singer, a poet, a photographer, a mashups act, and
+  three more), so his world uses audience traits only. "Tame Impala" has one.
+- **It does not slow the graph down.** The lookup starts as soon as the root
+  is resolved and runs alongside the insights, which are the bulk of the wait.
+  It is awaited only after them, because MusicBrainz is throttled to one
+  request a second: awaiting it earlier serialises that delay in front of the
+  insights and added 3.4s to every cold graph in an earlier revision (7.99s
+  against 4.56s once corrected). Starting it *before* the Qloo search instead
+  was also rejected, because a name we hand back for disambiguation would then
+  cost two MusicBrainz requests for nothing. That path is covered by a test.
+
+Because the root's genres and a node's genres come from different providers,
+the resulting statement names both: "Both are tagged psychedelic rock,
+neo-psychedelia and alternative rock" carries
+`sourceLabel: "MusicBrainz and Qloo"`. Audience-only matches still credit Qloo
+alone.
 
 ## Verified live
 
-Against live Qloo on 2026-10-24, a Tame Impala graph produced 15 edges: 1
-`provider_attribute` ("Qloo lists Tame Impala among Pond's collaborators"), 3
-`shared_attribute` (naming audience traits such as Dedicated and Eclectic), and
-11 `audience_overlap`. No `documented` edge, as expected.
+Against live Qloo on 2026-10-24, a Tame Impala graph produced 15 edges:
+
+| Basis | Count | Example |
+|---|---|---|
+| `provider_attribute` | 1 | "Qloo lists Tame Impala among Pond's collaborators." |
+| `shared_attribute` | 4 | "Both are tagged psychedelic rock, neo-psychedelia and alternative rock." |
+| `audience_overlap` | 10 | "Qloo found no documented link and no shared trait between Tame Impala and Patagonia." |
+
+No `documented` edge, as expected. Cold graph 4.56s, cached graph 2ms.
 
 ## Tests
 
@@ -79,5 +105,14 @@ directions of a stated relationship, accent- and case-insensitive name
 matching, whole-word place matching ("Rome" must not match "Romeo"), the
 contract rule that a `documented` basis needs a source, determinism, and that
 no statement claims endorsement, inspiration or causation.
-`apps/web/test/basis.test.ts` checks every rung has display metadata and that
-the rungs stay distinguishable without color.
+
+`apps/api/test/graph.test.ts` covers the root-traits path end to end: a genre
+shared between MusicBrainz (root) and Qloo (node) produces a
+`shared_attribute` crediting both sources; a failed MusicBrainz lookup still
+returns a complete graph with no invented shared trait; and an ambiguous name
+yields no `shared_attribute` edges at all. It also pins the call budget, so a
+future change that adds a provider request to the graph route has to say so.
+
+`apps/web/test/basis.test.ts` checks every rung has display metadata, that the
+rungs stay distinguishable without color, and that the `shared_attribute` copy
+does not credit a single source now that more than one can supply a trait.

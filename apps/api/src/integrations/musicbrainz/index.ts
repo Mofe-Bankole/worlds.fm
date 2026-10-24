@@ -35,6 +35,19 @@ const mbArtistSearchResponseSchema = z.looseObject({
   artists: z.array(mbArtistSchema).nullish()
 });
 
+/**
+ * `inc=genres` returns MusicBrainz's curated genre taxonomy rather than the
+ * raw folksonomy tags, which also carry non-genres such as "australian" or
+ * "favourite". Each genre carries how many users applied it, so the list can
+ * be ordered most- to least-applied.
+ */
+const mbArtistGenresSchema = z.looseObject({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  genres: z.array(z.looseObject({ name: z.string().min(1), count: z.number().nullish() })).nullish()
+});
+export type MbArtistGenres = z.infer<typeof mbArtistGenresSchema>;
+
 const mbArtistCreditSchema = z.looseObject({
   name: z.string().nullish(),
   artist: z.looseObject({ id: z.string(), name: z.string() }).nullish()
@@ -328,6 +341,17 @@ export class MusicBrainzCatalog {
   lookupArtist(mbid: string): Promise<MbArtistWithUrls | null> {
     return this.cached(`mbc:artist:${mbid}`, async () =>
       parseProviderPayload(PROVIDER, mbArtistWithUrlsSchema, await this.get(`/artist/${mbid}?inc=url-rels&fmt=json`))
+    );
+  }
+
+  /**
+   * An artist's genres, most-applied first. Genres are community-applied and
+   * curated into a taxonomy, so they describe how the artist is filed rather
+   * than anything the artist stated. Null on 404.
+   */
+  lookupArtistGenres(mbid: string): Promise<MbArtistGenres | null> {
+    return this.cached(`mbc:artist-genres:${mbid}`, async () =>
+      parseProviderPayload(PROVIDER, mbArtistGenresSchema, await this.get(`/artist/${mbid}?inc=genres&fmt=json`))
     );
   }
 

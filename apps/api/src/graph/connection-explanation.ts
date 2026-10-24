@@ -36,6 +36,22 @@ interface StatedRelation {
   shared: string[];
 }
 
+/**
+ * Traits for the root from a source other than the provider.
+ *
+ * The root artist comes from the provider's search endpoint, which returns a
+ * much thinner entity than its insights endpoint: measured live on
+ * 2026-10-24, 5 `properties` keys against 29-33, and no genres at all. Without
+ * this, no root-to-node trait could ever be shared. Supplied by the caller so
+ * the resolver stays pure, and kept labelled so a trait is never credited to
+ * the wrong source.
+ */
+export interface RootTraits {
+  genres: string[];
+  /** Who supplied them, e.g. "MusicBrainz". */
+  sourceLabel: string;
+}
+
 export interface ExplainConnectionInput {
   root: QlooEntity;
   target: QlooEntity;
@@ -44,6 +60,8 @@ export interface ExplainConnectionInput {
   targetCategory: CulturalCategory;
   /** A relationship already established from a cited source, if any. */
   documented?: { statement: string; sourceLabel: string; sourceUrl: string } | null;
+  /** Traits for the root from another source, when one was consulted. */
+  rootTraits?: RootTraits | null;
 }
 
 export function explainConnection(input: ExplainConnectionInput): EdgeBasis {
@@ -64,9 +82,17 @@ export function explainConnection(input: ExplainConnectionInput): EdgeBasis {
     return { kind: "provider_attribute", statement: stated.statement, shared: stated.shared, sourceLabel: QLOO, sourceUrl: null };
   }
 
-  const shared = sharedTraits(root, target);
+  const shared = sharedTraits(root, target, input.rootTraits ?? null);
   if (shared) {
-    return { kind: "shared_attribute", statement: shared.statement, shared: shared.shared, sourceLabel: QLOO, sourceUrl: null };
+    return {
+      kind: "shared_attribute",
+      statement: shared.statement,
+      shared: shared.shared,
+      sourceLabel: shared.sourceLabel,
+      // A shared classification is not stated at one address, so there is no
+      // single page to link. The label names who classified it.
+      sourceUrl: null
+    };
   }
 
   return {
@@ -149,25 +175,56 @@ function containsPlace(haystack: string, needle: string): boolean {
 
 /* ------------------------------- Rung 3: shared ------------------------------- */
 
-function sharedTraits(root: QlooEntity, target: QlooEntity): { statement: string; shared: string[] } | null {
+/**
+ * A genre can be shared between the two provider entities, or between the
+ * root's other-source genres and the target's provider genres. When sources
+ * differ the label names both, so a MusicBrainz classification is never
+ * credited to Qloo.
+ */
+function sharedTraits(
+  root: QlooEntity,
+  target: QlooEntity,
+  rootTraits: RootTraits | null
+): { statement: string; shared: string[]; sourceLabel: string } | null {
   const a = attributesOf(root);
   const b = attributesOf(target);
 
-  const genres = intersect(a.genres, b.genres);
-  const themes = intersect(a.themes, b.themes);
+  const genreGroups: Array<{ values: string[]; labels: string[] }> = [
+    {
+      values: intersect([...a.genres, ...a.themes], [...b.genres, ...b.themes]),
+      labels: [QLOO]
+    }
+  ];
+  if (rootTraits && rootTraits.genres.length > 0) {
+    genreGroups.push({
+      values: intersect(rootTraits.genres, b.genres),
+      labels: [rootTraits.sourceLabel, QLOO]
+    });
+  }
+
+  const genres = unique(genreGroups.flatMap((group) => group.values));
   const audiences = intersect(a.audienceTraits, b.audienceTraits);
 
-  const tagged = [...genres, ...themes];
-  if (tagged.length === 0 && audiences.length === 0) return null;
+  if (genres.length === 0 && audiences.length === 0) return null;
 
   const sentences: string[] = [];
-  if (tagged.length > 0) {
-    sentences.push(`Both are tagged ${formatNames(tagged)}.`);
+  if (genres.length > 0) {
+    sentences.push(`Both are tagged ${formatNames(genres)}.`);
   }
   if (audiences.length > 0) {
     sentences.push(`Qloo describes both audiences as ${formatNames(audiences)}.`);
   }
-  return { statement: sentences.join(" "), shared: [...tagged, ...audiences] };
+
+  const labels = unique([
+    ...genreGroups.filter((group) => group.values.length > 0).flatMap((group) => group.labels),
+    ...(audiences.length > 0 ? [QLOO] : [])
+  ]);
+
+  return {
+    statement: sentences.join(" "),
+    shared: [...genres, ...audiences],
+    sourceLabel: formatNames(labels)
+  };
 }
 
 function attributesOf(entity: QlooEntity): QlooEntityAttributes {
@@ -177,11 +234,16 @@ function attributesOf(entity: QlooEntity): QlooEntityAttributes {
 /** Values present in both lists, case-insensitively, in the first list's order. */
 function intersect(a: string[], b: string[]): string[] {
   const keys = new Set(b.map((value) => value.toLowerCase()));
+  return unique(a.filter((value) => keys.has(value.toLowerCase())));
+}
+
+/** Case-insensitive de-duplication, first spelling and order preserved. */
+function unique(values: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const value of a) {
+  for (const value of values) {
     const key = value.toLowerCase();
-    if (!keys.has(key) || seen.has(key)) continue;
+    if (seen.has(key)) continue;
     seen.add(key);
     out.push(value);
   }

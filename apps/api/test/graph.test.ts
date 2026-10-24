@@ -21,22 +21,51 @@ const searchEntity = (id: string, name: string, extra: Record<string, unknown> =
   popularity: 0.9,
   ...extra
 });
-const insightEntity = (id: string, name: string, subtype: string, affinity: number | null) => ({
+const insightEntity = (
+  id: string,
+  name: string,
+  subtype: string,
+  affinity: number | null,
+  extra: Record<string, unknown> = {}
+) => ({
   entity_id: id,
   name,
   type: "urn:entity",
   subtype,
   popularity: 0.5,
   tags: [],
-  ...(affinity === null ? {} : { query: { affinity } })
+  ...(affinity === null ? {} : { query: { affinity } }),
+  ...extra
 });
 
 const isSearch = (url: string) => url.includes("/search?");
 const category = (url: string) => /filter\.type=urn%3Aentity%3A(\w+)/.exec(url)?.[1];
 const isInsights = (type: string) => (url: string) => category(url) === type;
 
+/** The root's genres come from MusicBrainz, because Qloo's search returns none. */
+const MB_ARTIST = "99999999-9999-4999-8999-999999999999";
+const mbArtistSearch: Handler = {
+  match: (url) => url.includes("musicbrainz.org/ws/2/artist/?query="),
+  respond: () => jsonResponse({ artists: [{ id: MB_ARTIST, name: "Mock Artist", score: 100 }] })
+};
+const mbArtistGenres: Handler = {
+  match: (url) => url.includes(`musicbrainz.org/ws/2/artist/${MB_ARTIST}?inc=genres`),
+  respond: () =>
+    jsonResponse({
+      id: MB_ARTIST,
+      name: "Mock Artist",
+      genres: [
+        { name: "Neo-Psychedelia", count: 4 },
+        { name: "Psychedelic Rock", count: 9 }
+      ]
+    })
+};
+
 const artists = [
-  insightEntity("a0000000-0000-4000-8000-000000000001", "Mock Artist B", "urn:entity:artist", 0.97),
+  // Shares a genre with the root (MusicBrainz says "Psychedelic Rock").
+  insightEntity("a0000000-0000-4000-8000-000000000001", "Mock Artist B", "urn:entity:artist", 0.97, {
+    properties: { primary_genres: ["psychedelic rock", "Indie Pop"] }
+  }),
   insightEntity("a0000000-0000-4000-8000-000000000002", "Mock Artist C", "urn:entity:artist", 0.95)
 ];
 const brands = [insightEntity("b0000000-0000-4000-8000-000000000001", "Mock Brand", "urn:entity:brand", 0.98)];
@@ -58,7 +87,9 @@ const happy = (): Handler[] => [
   exactSearch,
   okInsights("artist", artists),
   okInsights("brand", brands),
-  okInsights("destination", destinations)
+  okInsights("destination", destinations),
+  mbArtistSearch,
+  mbArtistGenres
 ];
 
 let apps: FastifyInstance[] = [];
@@ -115,9 +146,87 @@ describe("GET /api/v1/graph/artist (mock fixtures, no network)", () => {
     expect(graph.edges.every((e) => e.provenance.provider === "qloo" && e.references.length === 0)).toBe(true);
     expect(graph.edges.map((e) => e.affinity).sort()).toEqual([0.9, 0.95, 0.97, 0.98]);
     expect(graph.nodes.every((n) => n.geo === null)).toBe(true);
-    expect(JSON.stringify([graph.nodes, graph.edges])).not.toMatch(/latitude|longitude|verified_fact|collaborat/i);
+    // No coordinates, and nothing claimed as a verified fact.
+    expect(JSON.stringify([graph.nodes, graph.edges])).not.toMatch(/latitude|longitude|verified_fact/i);
+    // Anything the provider states is attributed to it, never asserted as ours.
+    for (const edge of graph.edges) {
+      if (/collaborat|influenc/i.test(edge.basis.statement)) {
+        expect(edge.basis.kind).toBe("provider_attribute");
+        expect(edge.basis.statement).toMatch(/^Qloo lists /);
+      }
+    }
     const dest = graph.edges.find((e) => e.label.includes("Mock Destination"));
     expect(dest?.label).toContain("not a verified location");
+  });
+
+  it("shares a genre with the root by reading the root's genres from MusicBrainz", async () => {
+    const { app, calls } = await makeApp(happy());
+    const parsed = culturalDiscoveryResponseSchema.parse((await app.inject(URL_)).json());
+    const graph = parsed.graph!;
+    const nameOf = (id: string) => graph.nodes.find((n) => n.id === id)?.name;
+    const basisFor = (name: string) =>
+      graph.edges.find((e) => nameOf(e.target) === name)?.basis;
+
+    // The root has no genres of its own: Qloo's search endpoint returns none.
+    expect(parsed.root?.attributes.genres).toEqual([]);
+
+    // Qloo files the target as "psychedelic rock"; MusicBrainz files the root
+    // as "Psychedelic Rock". The shared trait names both sources.
+    const shared = basisFor("Mock Artist B");
+    expect(shared?.kind).toBe("shared_attribute");
+    expect(shared?.statement).toBe("Both are tagged Psychedelic Rock.");
+    expect(shared?.sourceLabel).toBe("MusicBrainz and Qloo");
+    expect(shared?.shared).toEqual(["Psychedelic Rock"]);
+
+    // No shared trait for the other artist, so it stays an honest overlap.
+    const overlap = basisFor("Mock Artist C");
+    expect(overlap?.kind).toBe("audience_overlap");
+    expect(overlap?.sourceLabel).toBe("Qloo");
+
+    expect(callsMatching(calls, "musicbrainz.org/ws/2/artist/?query=")).toHaveLength(1);
+    expect(callsMatching(calls, `artist/${MB_ARTIST}?inc=genres`)).toHaveLength(1);
+  });
+
+  it("keeps the graph when MusicBrainz cannot supply the root's genres", async () => {
+    // No MusicBrainz handlers at all: every call fails at the stub.
+    const { app } = await makeApp([
+      exactSearch,
+      okInsights("artist", artists),
+      okInsights("brand", brands),
+      okInsights("destination", destinations)
+    ]);
+    const res = await app.inject(URL_);
+    expect(res.statusCode).toBe(200);
+    const parsed = culturalDiscoveryResponseSchema.parse(res.json());
+    expect(parsed.status).toBe("complete");
+    // Without the root's genres the shared genre cannot be found, so the link
+    // falls back rather than guessing.
+    const shared = parsed.graph?.edges.find((e) => e.basis.kind === "shared_attribute");
+    expect(shared).toBeUndefined();
+  });
+
+  it("does not use another artist's genres when the name is ambiguous", async () => {
+    const { app } = await makeApp([
+      exactSearch,
+      okInsights("artist", artists),
+      okInsights("brand", brands),
+      okInsights("destination", destinations),
+      {
+        match: (url) => url.includes("musicbrainz.org/ws/2/artist/?query="),
+        respond: () =>
+          jsonResponse({
+            artists: [
+              { id: MB_ARTIST, name: "Mock Artist", score: 100 },
+              { id: "88888888-8888-4888-8888-888888888888", name: "Mock Artist", score: 100 }
+            ]
+          })
+      },
+      mbArtistGenres
+    ]);
+    const parsed = culturalDiscoveryResponseSchema.parse((await app.inject(URL_)).json());
+    // Two artists share the name, so neither one's genres are attached.
+    expect(parsed.graph?.edges.some((e) => e.basis.kind === "shared_attribute")).toBe(false);
+    expect(parsed.graph?.edges.every((e) => e.basis.kind === "audience_overlap")).toBe(true);
   });
 
   it("keeps a missing affinity null and reports it", async () => {
@@ -206,6 +315,9 @@ describe("GET /api/v1/graph/artist (mock fixtures, no network)", () => {
     expect(parsed).toMatchObject({ status: "needs_disambiguation", resolution: "ambiguous", root: null, graph: null });
     expect(parsed.candidates).toHaveLength(2);
     expect(callsMatching(calls, "/v2/insights?")).toHaveLength(0);
+    // Nothing is enriched for a name we are handing back to the reader, so no
+    // MusicBrainz request is spent on it.
+    expect(callsMatching(calls, "musicbrainz.org")).toHaveLength(0);
   });
 
   it("does not treat a fuzzy neighbour as the requested artist", async () => {
@@ -218,6 +330,7 @@ describe("GET /api/v1/graph/artist (mock fixtures, no network)", () => {
     const parsed = culturalDiscoveryResponseSchema.parse((await app.inject(URL_)).json());
     expect(parsed).toMatchObject({ status: "needs_disambiguation", resolution: "fuzzy", graph: null, root: null });
     expect(callsMatching(calls, "/v2/insights?")).toHaveLength(0);
+    expect(callsMatching(calls, "musicbrainz.org")).toHaveLength(0);
   });
 
   it("returns 404 with an honest body when the artist is not found", async () => {
@@ -300,7 +413,8 @@ describe("GET /api/v1/graph/artist (mock fixtures, no network)", () => {
     expect(b.statusCode).toBe(200);
     const again = await app.inject(URL_);
     expect(again.headers["x-worlds-cache"]).toBe("hit");
-    expect(calls).toHaveLength(4);
+    // One search, three insights, and two MusicBrainz calls for the root's genres.
+    expect(calls).toHaveLength(6);
   });
 
   it("does not cache a total outage, and retries only the failed category after a partial result", async () => {

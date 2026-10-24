@@ -35,5 +35,9 @@ describe("connection basis metadata", () => {
     }
     // The weakest rung must say what it is not.
     expect(BASIS.audience_overlap.meaning).toContain("Nothing beyond the affinity score");
+    // A shared trait can come from more than one source, so its copy must not
+    // credit a single one of them.
+    expect(BASIS.shared_attribute.meaning).not.toMatch(/Qloo records/);
+    expect(BASIS.shared_attribute.meaning).toContain("sources");
   });
 });
