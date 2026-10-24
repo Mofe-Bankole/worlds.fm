@@ -17,6 +17,7 @@ import type { MusicBrainzCatalog } from "../integrations/musicbrainz/index.js";
 import { TtlCache, type TtlCacheOptions } from "../lib/cache.js";
 import { ApiError } from "../lib/errors.js";
 import { namesMatch, normalizeName } from "../lib/matching.js";
+import type { ConnectionFindingsIndex } from "./connection-findings.js";
 
 /** Graph size for a first constellation: root plus up to 15 neighbours. */
 export const DISCOVERY_MAX_NODES = 16;
@@ -35,6 +36,12 @@ export interface CulturalDiscoveryServiceOptions {
    * specific about the root.
    */
   musicBrainz?: MusicBrainzCatalog;
+  /**
+   * Precomputed connection research (AGENTS.md §12). Optional, and read-only:
+   * it can raise an edge to the `documented` rung, and its absence only means
+   * every edge stays on the weaker rungs.
+   */
+  findings?: ConnectionFindingsIndex;
   /** `ttlMs` caches complete results; `negativeTtlMs` the shorter partial/no-match ones. */
   cache: TtlCacheOptions;
 }
@@ -54,12 +61,14 @@ export interface DiscoveryResult {
 export class CulturalDiscoveryService {
   private readonly adapter: QlooAdapter;
   private readonly musicBrainz: MusicBrainzCatalog | undefined;
+  private readonly findings: ConnectionFindingsIndex | undefined;
   private readonly cache: TtlCache<CulturalDiscoveryResponse>;
   private readonly inFlight = new Map<string, Promise<CulturalDiscoveryResponse>>();
 
   constructor(options: CulturalDiscoveryServiceOptions) {
     this.adapter = options.adapter;
     this.musicBrainz = options.musicBrainz;
+    this.findings = options.findings;
     this.cache = new TtlCache(options.cache);
   }
 
@@ -178,7 +187,7 @@ export class CulturalDiscoveryService {
     const rootTraits = await traitsPromise;
     const graph = culturalGraphSchema.parse(
       buildCulturalGraph(
-        { root, insights: successes, rootTraits },
+        { root, insights: successes, rootTraits, findings: this.findings ?? null },
         { maxNodes: DISCOVERY_MAX_NODES, maxPerCategory: input.limit }
       )
     );

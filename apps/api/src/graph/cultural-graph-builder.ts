@@ -14,6 +14,7 @@ import {
 } from "@worlds/shared";
 
 import { explainConnection, type RootTraits } from "./connection-explanation.js";
+import type { ConnectionFindingsIndex } from "../services/connection-findings.js";
 
 export const DEFAULT_MAX_NODES = 25;
 export const DEFAULT_MAX_PER_CATEGORY = 10;
@@ -28,6 +29,13 @@ export interface BuildCulturalGraphInput {
    * returns no genres, so without this no root-to-node trait could be shared.
    */
   rootTraits?: RootTraits | null;
+  /**
+   * Precomputed connection research (AGENTS.md §12). When a pair has a cited
+   * finding, its edge reaches the `documented` rung instead of stopping at an
+   * affinity. Absent, every edge falls back to the weaker rungs, which is the
+   * correct degradation: no citation, no documented claim.
+   */
+  findings?: ConnectionFindingsIndex | null;
 }
 
 export interface BuildCulturalGraphOptions {
@@ -165,11 +173,20 @@ export function buildCulturalGraph(
       }
       const affinity =
         typeof item.affinity === "number" && Number.isFinite(item.affinity) ? item.affinity : null;
+      // Precomputed research, if this pair was ever looked at. Null covers both
+      // "researched and declined" and "never researched"; either way the edge
+      // keeps the weaker rung it can honestly support.
+      const documented =
+        input.findings?.documented(
+          { name: rootNode.name, category: rootNode.category },
+          { name: node.name, category: node.category }
+        ) ?? null;
       const basis = explainConnection({
         root: parsedRoot.data,
         target: parsed.data,
         rootCategory: rootNode.category,
         targetCategory: node.category,
+        documented,
         rootTraits: input.rootTraits ?? null
       });
       const edge: CulturalEdge = {
@@ -177,6 +194,9 @@ export function buildCulturalGraph(
         source: rootNode.id,
         target: node.id,
         relationship: "affinity_recommendation",
+        // The edge exists because Qloo recommended the pair, and carries its
+        // score. `basis` says how specific the explanation can be, which is
+        // where a cited relationship is recorded.
         evidence: "qloo_affinity",
         provenance: {
           provider: "qloo",
@@ -186,7 +206,9 @@ export function buildCulturalGraph(
           retrievedAt: response.provenance.retrievedAt
         },
         affinity,
-        references: [],
+        // Non-empty exactly when the basis is `documented`; the schema rejects
+        // a documented basis without them.
+        references: documented?.references ?? [],
         label: edgeLabel(basis, node),
         basis
       };

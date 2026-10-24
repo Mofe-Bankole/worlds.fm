@@ -150,7 +150,9 @@ Initialize `apps/web`, `apps/api`, and `packages/shared` in a single workspace. 
 
 ## 12. The product agent — connection research
 
-**What it is.** Given two nodes in a cultural graph, the connection agent researches whether a real, documented connection between them exists, and returns either a **cited statement** or an honest **decline**. It is the only component permitted to produce a `documented` basis on a graph edge; that rung of the evidence ladder is deliberately unreachable from Qloo alone. See `docs/backend/connection-agent.md` for the design and `docs/backend/connection-explanations.md` for the ladder it feeds.
+**What it is.** Given two nodes in a cultural graph, the connection agent researches whether a real, documented connection between them exists, and returns either a **cited statement** or an honest **decline**. It is the only component permitted to produce a `documented` basis on a graph edge; that rung of the evidence ladder is deliberately unreachable from Qloo alone.
+
+The reviewed corpus lives in `apps/api/src/content/connection-findings.ts` and is validated at import, so an uncited finding fails the build rather than reaching a reader. The contract is `packages/shared/src/connection-agent.ts`, the lookup is `apps/api/src/services/connection-findings.ts`, and the model seam is `apps/api/src/integrations/research/`. Research runs **offline**: nothing on the request path calls a model. See `docs/backend/connection-agent.md` for the design and `docs/backend/connection-explanations.md` for the ladder it feeds.
 
 **Why both halves are required.** This is the product's central claim, so do not reduce it to either half:
 

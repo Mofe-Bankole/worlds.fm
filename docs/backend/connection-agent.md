@@ -1,7 +1,18 @@
 # The connection agent
 
-**Status:** designed, **not built**. No agent, LLM client or tool loop exists in
-the repository yet. The binding rules are in `AGENTS.md` §12.
+**Status:** the **precomputed half is built and live**; the model is a seam with
+no provider behind it yet. Binding rules: `AGENTS.md` §12.
+
+| Piece | State |
+|---|---|
+| Findings contract and citation rules | ✅ `packages/shared/src/connection-agent.ts` |
+| Reviewed findings artifact | ✅ `apps/api/src/content/connection-findings.ts` |
+| Pair lookup | ✅ `apps/api/src/services/connection-findings.ts` |
+| Reaches graph edges as `documented` | ✅ `cultural-graph-builder.ts` |
+| Provider-agnostic model seam | ✅ `apps/api/src/integrations/research/index.ts` |
+| A model provider | ❌ **not chosen** — the seam returns `not_configured` |
+| Live research at request time | ❌ **deliberately not built** (see *Decisions*) |
+| UI for a *researched decline* | ❌ open; a decline currently looks like an unresearched pair |
 
 ## The problem
 
@@ -79,49 +90,88 @@ a complete, coherent product experience, not just a technical proof of concept".
 The agent's output should look like the rest of the graph: a statement, a badge,
 and a source link.
 
-## Open decisions
+## Remaining open question
 
-These are recorded rather than assumed. `AGENTS.md` §12 deliberately does not fix
-them.
+### Recording a decline in the interface
 
-### 1. Execution model
+Whether "we checked and found nothing" should be distinguishable from "we never
+checked". The **data** already distinguishes them — `hasResearched()` returns
+true for a decline while `documented()` returns null — but the graph does not
+surface it, so today both render as the same weaker rung.
 
-| Option | For | Against |
+This is a real trade-off, not an oversight. Saying "we researched this and found
+nothing" is more honest, but it also makes the interface noisier and draws
+attention to absences. It needs a UI decision, and a small contract addition if
+the distinction should survive to the client.
+
+Note on persistence, which was open in the first draft: the precomputed corpus
+needs **no database**. It is a reviewed source file, versioned in git, validated
+at import. There is still no database code in `apps/api` and
+`supabase/migrations` is empty, and this design did not change that. A corpus
+large enough to need Postgres would be a different decision.
+
+## How a finding reaches the screen
+
+```text
+connection-findings.ts (reviewed artifact, validated at import)
+        │
+        ▼
+ConnectionFindingsIndex ── pairKey(subject, target), order-insensitive
+        │
+        ▼
+cultural-graph-builder ── documented() → explainConnection({ documented })
+        │
+        ▼
+edge.basis.kind = "documented"  +  edge.references[]  +  edge.basis.sourceUrl
+        │
+        ▼
+BasisBadge renders "DOCUMENTED" and links the citation
+```
+
+Nothing new was needed in the graph contract: `explainConnection()` already
+accepted a citation, and the schema already required `references` for a
+`documented` basis. The agent is the caller that was missing.
+
+## What was verified live
+
+Against live Qloo on 2026-10-24, with the artifact in place:
+
+| World | `documented` | Other rungs |
 |---|---|---|
-| **On demand** — a reader asks about a specific pair | Cheap, no storage, always current, trivially bounded per request | Latency is visible; the same pair is re-researched; a demo depends on live provider latency |
-| **Precomputed** — run for featured worlds ahead of time | Instant, reviewable, no live cost during judging, quality can be checked by a human | Needs storage and a job runner; the corpus is only as large as what was precomputed |
-| **Hybrid** — precompute the featured worlds, allow on-demand for the rest | Best demo, bounded live cost | Most moving parts, and the most to get wrong in the time available |
+| Bob Marley | **4** (Ziggy, Stephen, Damian Marley, Bob Marley & The Wailers) | 1 provider attribute, 10 audience overlap |
+| Tame Impala | **1** (Pond, citing three MusicBrainz pages) | 4 shared trait, 10 audience overlap |
 
-Worth noting for the demo: a precomputed corpus is *reviewable before submission*,
-which matters when the claim being judged is "these statements are sourced". An
-on-demand-only agent cannot be checked in advance and will fail visibly if a
-provider is slow during judging.
+The four cited MusicBrainz artist pages were each fetched and returned HTTP 200.
+`GoPro` and `Melbourne`, which have `declined` findings, stayed on
+`audience_overlap` — a decline does not become an edge.
 
-### 2. Model provider
+In the browser, Bob Marley's nodes read "Ziggy Marley, Artist, **Documented**,
+affinity 0.96", and the node card shows the statement, the `DOCUMENTED` badge and
+a working citation link (`https://musicbrainz.org/artist/ed2ac1e9-…`). axe-core
+reported 0 violations.
 
-Deliberately open. `AGENTS.md` §12 requires the adapter to be provider-agnostic
-and server-only, so this is a configuration decision, not an architectural one.
+## Decisions taken
 
-### 3. Placement
+The three questions left open in the first draft of this document are now
+answered for the built half.
 
-`AGENTS.md` §0 fixes the Fastify boundary, so the default is a module inside
-`apps/api` (`src/integrations/<provider>/` plus a service and a route). A separate
-service is only justified if the agent needs a runtime that `apps/api` cannot
-provide, and that has not been established. Do not add a second service by
-assumption.
+1. **Execution model: precomputed.** Research runs offline and the result is a
+   versioned artifact read at request time. The reason is not performance: it is
+   that the claim being judged is "these statements are sourced", and a
+   precomputed corpus can be **read and checked before submission**. Research
+   done live during judging cannot be reviewed in advance and fails visibly if a
+   provider is slow.
+2. **Provider: deferred behind a seam.** `ConnectionResearchModel` is the only
+   thing a provider must implement. The seam is testable today with no provider,
+   which is why it was built first. The default implementation reports
+   `not_configured` instead of throwing.
+3. **Placement: inside `apps/api`.** No new service. Research is offline, so it
+   needs no runtime the API cannot provide, and `AGENTS.md` §0 keeps the Fastify
+   boundary.
 
-### 4. Recording a decline
-
-Whether "we checked and found nothing" is distinguishable from "we never
-checked". Today they look identical on the graph. Deciding this needs a small
-contract change and a UI decision.
-
-### 5. Persistence
-
-There is currently **no database code in `apps/api` at all** and
-`supabase/migrations` is empty. An on-demand agent with an in-process cache needs
-none. A precomputed corpus does, and that is the first thing in this project that
-would genuinely need the Supabase layer the README already specifies.
+Still open: whether a *researched decline* should be distinguishable in the UI
+from an unresearched pair (the data already distinguishes them —
+`hasResearched()` versus `documented()` — but nothing surfaces it yet).
 
 ## Failure modes
 
@@ -136,14 +186,31 @@ would genuinely need the Supabase layer the README already specifies.
 
 ## Acceptance criteria
 
-- [ ] A resolved connection renders as a `documented` edge with a working source
+Met, and covered by tests or live checks:
+
+- [x] A resolved connection renders as a `documented` edge with a working source
       link, above the affinity rungs, and the badge explains what that means.
-- [ ] A declined pair renders as its previous, weaker basis with no error state.
-- [ ] No page load waits on the agent; a failed agent never breaks a World.
-- [ ] The same pair, asked twice, is served from cache and does not re-spend.
-- [ ] No model key, model name or prompt is present in the browser bundle.
-- [ ] An uncited claim cannot reach the graph: the schema rejects it.
-- [ ] Tests use sanitized provider fixtures; the live provider is smoke-tested
-      separately, per `AGENTS.md` §9.
-- [ ] The agent's output for at least one featured World has been read and
-      verified by a human against its sources.
+      *(Live: Bob Marley ×4, Tame Impala ×1; all four cited pages returned 200.)*
+- [x] A declined pair renders as its previous, weaker basis with no error state.
+      *(Live: `GoPro` and `Melbourne` stayed on `audience_overlap`.)*
+- [x] No page load waits on the agent; research is precomputed, so there is
+      nothing to wait for.
+- [x] No model key, model name or prompt is present in the browser bundle, and
+      none is read by the API either: the seam is not wired into `app.ts`.
+- [x] An uncited claim cannot reach the graph: the schema rejects it, and a model
+      reply that claims a link without a citation is discarded as
+      `invalid_output`.
+- [x] A near-miss name cannot inherit another entity's citation
+      (`Mock Artist` ≠ `Mock Artists`), and category is part of the pair key.
+- [x] A duplicate pair is refused rather than resolved by file order.
+
+Still open:
+
+- [ ] **A human has read the findings against their sources.** The statements are
+      verified against live MusicBrainz output, but that is machine verification,
+      not editorial review. This is the same caveat the featured-world facts
+      already carry, and it is the one thing standing between these edges and
+      being signed off.
+- [ ] A model provider is chosen, and the seam implemented.
+- [ ] A researched decline is surfaced as such (see *Remaining open question*).
+- [ ] The corpus covers more than two featured Worlds.

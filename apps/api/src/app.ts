@@ -19,6 +19,7 @@ import { graphRoutes } from "./routes/graph.js";
 import { musicRoutes } from "./routes/music.js";
 import { MusicCatalogService } from "./services/music-catalog.js";
 import { CulturalDiscoveryService } from "./services/cultural-discovery.js";
+import { ConnectionFindingsIndex } from "./services/connection-findings.js";
 
 export interface BuildAppOptions {
   config?: AppConfig;
@@ -75,6 +76,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // One catalogue shared by the graph and music routes, so both read the same
   // cached artist lookups instead of fetching the same artist twice.
   const musicBrainz = new MusicBrainzCatalog({ http: http.musicBrainz, cache: cacheOptions });
+  // Built once: the findings artifact is static and validated at import, so
+  // this is a read-only lookup table, not per-request work.
+  const findings = new ConnectionFindingsIndex();
   await app.register(healthRoutes);
   await app.register(mediaRoutes, { resolver });
   const qlooAdapter = buildQlooAdapter(config, options.fetchFn);
@@ -86,6 +90,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     service: new CulturalDiscoveryService({
       adapter: qlooAdapter,
       musicBrainz,
+      findings,
       cache: {
         ttlMs: config.qlooCacheTtlMs,
         negativeTtlMs: config.qlooNegativeCacheTtlMs,

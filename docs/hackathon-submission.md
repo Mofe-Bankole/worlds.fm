@@ -55,7 +55,7 @@ All five are mandatory. Missing any one is ineligibility, not a deduction.
 |---|---|---|
 | 1 | Link to a **functional demo application**, live and end-to-end | ✅ <https://worlds-fm.vercel.app>, API on Northflank. Verified live 24 Oct. |
 | 2 | URL to a **public** code repository | ❌ **BLOCKER — the repository is private** (`gh repo view` reports `isPrivate: true`). |
-| 3 | Text description of what it does and what makes it Qloo-powered | ❌ Not written. |
+| 3 | Text description of what it does and what makes it Qloo-powered | ❌ Not written. The agent now gives it a concrete story to tell. |
 | 4 | **Externally hosted and fully published**; local-only or private-access submissions do not qualify | ✅ Vercel + Northflank, both public. |
 | 5 | **Open-source license**, with the file visible in the repo's About section | ⚠️ `LICENSE` is MIT and GitHub detects it as `mit`, but the About section cannot show it until the repo is public. |
 
@@ -64,25 +64,38 @@ use instead, which raises the bar on the live demo being genuinely usable.
 
 ## The gap that matters
 
-Requirements 2 and 5 are mechanical. The substantive gap is the brief itself:
-**the submission must be agentic, and Worlds.fm currently has no agent.**
+Requirements 2 and 5 are mechanical. The substantive gap was the brief itself:
+**the submission must be agentic, and Worlds.fm had no agent.**
 
-What exists is a deterministic graph: Qloo returns affinities, a resolver labels
-each edge with the strongest basis it can support, and the UI shows it. There is
-no LLM, no agent loop and no tool use anywhere in `apps/api` or `apps/web`.
-`README.md` currently describes the hosted LLM as *"optional"* and *"never a
-required dependency for the initial journey"* — which was a reasonable product
-stance, and is now in direct tension with the event being judged.
+What existed was a deterministic graph: Qloo returns affinities, a resolver
+labels each edge with the strongest basis it can support, and the UI shows it.
+There was no LLM, no agent loop and no tool use anywhere in `apps/api` or
+`apps/web`. `README.md` described the hosted LLM as *"optional"* and *"never a
+required dependency for the initial journey"* — a reasonable product stance, and
+in direct tension with the event being judged.
 
-The fix is not to add an LLM feature. It is to build the one capability the
+The fix was not to add an LLM feature. It was to build the one capability the
 existing design was already shaped around and never had an actor for: an agent
 that takes two nodes and establishes whether a **real, sourced** connection
-between them exists. `AGENTS.md` §12 defines it, and
+between them exists. `AGENTS.md` §12 defines it;
 [`backend/connection-agent.md`](./backend/connection-agent.md) designs it.
+
+**State: the precomputed half is built and live.** Bob Marley's world now shows
+four `documented` edges with working citations, and Tame Impala's shows one.
+A model provider is deliberately still unchosen — the seam is built and
+testable without one, and research runs offline, so no provider is needed for
+the demo to work.
 
 That is also the strongest answer to *"would this work the same without Qloo?"* —
 it would not. Without Qloo there is no way to know which of the effectively
 infinite pairs is worth researching.
+
+### The honest gap that remains
+
+The findings are verified against **live MusicBrainz output**, which is machine
+verification, not editorial review. A human should read the statements against
+their sources before the "sourced facts" claim is presented as signed off. The
+same caveat already applies to the featured-world facts.
 
 ## Before submitting
 
