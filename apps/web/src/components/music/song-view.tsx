@@ -6,6 +6,7 @@ import { ShareControl } from "@/components/share/share-control";
 import { formatDuration, isSingleArtistCredit } from "@/lib/music/format";
 import { songShareTarget, worldPath } from "@/lib/share";
 import { ExternalLink, SpotifyButton } from "./links";
+import { PlayerPlayButton } from "./player-context";
 import { StoryBody } from "./track-story";
 
 /**
@@ -38,6 +39,11 @@ export function SongView({ mbid, story }: { mbid: string; story: RecordingStoryR
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
+          {recording.spotify ? (
+            <PlayerPlayButton entity={{
+              kind: "track", id: recording.spotify.id, title: recording.title, artist: recording.artistCredit,
+            }} />
+          ) : null}
           {recording.spotify ? <SpotifyButton href={recording.spotify.url}>Open in Spotify</SpotifyButton> : null}
           {artist ? (
             <Link

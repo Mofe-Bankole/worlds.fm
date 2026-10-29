@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { RecordingStoryResponse } from "@worlds/shared";
 import { WorldsMark } from "@/components/worlds-mark";
 import { SongView } from "@/components/music/song-view";
+import { PlayerProvider } from "@/components/music/player-context";
 import { fetchRecordingStory } from "@/lib/api/music";
 import { NON_AFFILIATION_NOTICE } from "@/lib/brand";
 import { siteUrlFromRequest } from "@/lib/site";
@@ -110,26 +111,28 @@ export default async function SongPage({ params }: { params: Promise<{ mbid: str
   if (lookup.kind === "missing") notFound();
 
   return (
-    <main id="main" className="relative min-h-screen bg-night">
-      <header className="px-[var(--layout-gutter)] py-5">
-        <Link href="/" className="inline-flex items-center gap-2.5" aria-label="Worlds.fm home">
-          <WorldsMark className="size-7" />
-          <span className="text-base font-extrabold tracking-[-0.03em]">
-            Worlds<span className="text-electric">.fm</span>
-          </span>
-        </Link>
-      </header>
+    <PlayerProvider>
+      <main id="main" className="relative min-h-screen bg-night">
+        <header className="px-[var(--layout-gutter)] py-5">
+          <Link href="/" className="inline-flex items-center gap-2.5" aria-label="Worlds.fm home">
+            <WorldsMark className="size-7" />
+            <span className="text-base font-extrabold tracking-[-0.03em]">
+              Worlds<span className="text-electric">.fm</span>
+            </span>
+          </Link>
+        </header>
 
-      <div className="mx-auto max-w-4xl px-[var(--layout-gutter)] pb-12">
-        <SongView mbid={mbid} story={lookup.kind === "ok" ? lookup.data : null} />
-      </div>
+        <div className="mx-auto max-w-4xl px-[var(--layout-gutter)] pb-12">
+          <SongView mbid={mbid} story={lookup.kind === "ok" ? lookup.data : null} />
+        </div>
 
-      {/* Public, generic: a song page carries no personal data. */}
-      <footer className="px-[var(--layout-gutter)] pb-10 pt-4">
-        <p className="mx-auto max-w-2xl text-center text-[0.6875rem] leading-relaxed text-text-3">
-          {NON_AFFILIATION_NOTICE}
-        </p>
-      </footer>
-    </main>
+        {/* Public, generic: a song page carries no personal data. */}
+        <footer className="px-[var(--layout-gutter)] pb-10 pt-4">
+          <p className="mx-auto max-w-2xl text-center text-[0.6875rem] leading-relaxed text-text-3">
+            {NON_AFFILIATION_NOTICE}
+          </p>
+        </footer>
+      </main>
+    </PlayerProvider>
   );
 }
