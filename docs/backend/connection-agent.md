@@ -1,18 +1,41 @@
 # The connection agent
 
-**Status:** the **precomputed half is built and live**; the model is a seam with
-no provider behind it yet. Binding rules: `AGENTS.md` §12.
+**Status (27 October 2026):** precomputed lookup is built; an offline
+tool-use runner and a Factory SDK decision adapter have fixture tests.
+Authenticated bounded research attempts have executed, but produced **no
+model finding**. The existing corpus was hand-authored and machine-checked,
+not human editorially approved. The new pair-story surface withholds those
+entries as pending review; the existing graph's documented rungs still show
+their machine-checked citations and require a separate editorial audit.
+Binding rules: `AGENTS.md` §12.
+
+The evidence-first separation of Qloo discovery, agent research, per-claim
+sources, human publication review and UI status is recorded in
+[Connection evidence pipeline](./connection-evidence-pipeline.md). This is a
+design observation, not an additional implemented provider or live research
+path.
 
 | Piece | State |
 |---|---|
 | Findings contract and citation rules | ✅ `packages/shared/src/connection-agent.ts` |
-| Reviewed findings artifact | ✅ `apps/api/src/content/connection-findings.ts` |
+| Machine-checked findings artifact, pending human approval | ✅ `apps/api/src/content/connection-findings.ts` |
 | Pair lookup | ✅ `apps/api/src/services/connection-findings.ts` |
 | Reaches graph edges as `documented` | ✅ `cultural-graph-builder.ts` |
 | Provider-agnostic model seam | ✅ `apps/api/src/integrations/research/index.ts` |
-| A model provider | ❌ **not chosen** — the seam returns `not_configured` |
+| Local offline model adapter | ✅ Factory SDK, explicitly selected Opus 5 in private local config; not deployed |
 | Live research at request time | ❌ **deliberately not built** (see *Decisions*) |
-| UI for a *researched decline* | ❌ open; a decline currently looks like an unresearched pair |
+| Qloo-selected offline runner | ✅ `apps/api/src/services/connection-research.ts`, fixture-tested only |
+| Source tools and bounded model-action loop | ✅ `apps/api/src/integrations/research/{musicbrainz-tools,agent}.ts` |
+| UI for a reviewed decline | ✅ distinct `researchStatus` on a graph edge |
+| Factory SDK model adapter and executable CLI | ✅ mock-tested, disabled until private key + model ID + `--live` |
+| Authenticated Qloo → Factory → source-tools run | ⚠️ attempted; no successful finding or approved publication |
+
+The read-only `/api/v1/graph/artist-connection` response uses explicit
+`editorialApproval` on a finding before showing cited story claims. Machine
+checks and model drafts alone cannot mark a story approved. Story reads never
+invoke a provider or model. Artist-path cards render from the current graph;
+images load separately. A safe trace summarizer exists for a future approved
+demo, but no real trace is currently public.
 
 ## The problem
 
@@ -51,16 +74,12 @@ an edge whose `basis.kind` is `documented`, with `references` populated and
 the input `explainConnection()` already accepts, and the shape the schema already
 validates.
 
-A **decline** is equally well served today: the agent finds nothing citable, and
-the edge keeps the weaker rung it already had. The existing fallback statement
-already reads honestly ("Qloo found no documented link and no shared trait
-between X and Y").
+A reviewed **decline** leaves the edge on its weaker Qloo rung, with a separate
+`researchStatus: "declined"`. An unresearched pair remains `unresearched`.
+Neither Qloo nor a search of one source can establish that no relationship
+exists elsewhere.
 
-One question is genuinely open — see *Open decisions*, item 4 — whether the
-product should also *record that the agent looked*, so a reader can tell "we
-checked and there is nothing" from "we never checked". That would be a small
-contract addition, not a redesign, and it should be decided deliberately rather
-than smuggled in.
+The graph and card now make this distinction explicit without changing affinity.
 
 ## What already exists to build on
 
@@ -90,19 +109,56 @@ a complete, coherent product experience, not just a technical proof of concept".
 The agent's output should look like the rest of the graph: a statement, a badge,
 and a source link.
 
-## Remaining open question
+## Offline runner and review boundary
 
-### Recording a decline in the interface
+`selectResearchCandidates` only accepts edges returned by Qloo Insights and
+skips artist pairs already in the reviewed corpus. A run is capped at three
+pairs. `ResearchDecisionModel.next` asks to `search_artist`,
+`artist_relations`, `recording_credits`, or `finish`; the runner allows six turns and five source
+requests per pair. MusicBrainz's artist-relationship tool supplies short,
+bounded relation records and source URLs, not raw web pages. The runner rejects
+ambiguous identities, unsearched IDs, invented citations, unsupported
+statements, source failures, and unfinished searches. It cannot research
+brands or places yet.
 
-Whether "we checked and found nothing" should be distinguishable from "we never
-checked". The **data** already distinguishes them — `hasResearched()` returns
-true for a decline while `documented()` returns null — but the graph does not
-surface it, so today both render as the same weaker rung.
+`draftReport(run)` creates an `UNREVIEWED_RESEARCH_DRAFT` audit object with the
+Qloo-ranked selection, tool observations, and model decisions. Nothing
+automatically copies that draft into `connection-findings.ts`, and no API
+endpoint runs a model. Before publication a human must check the cited source,
+the meaning of its relation, and the limits of any declined search, then
+manually add an approved finding under their own reviewer name. A model's
+`draft:*` marker is never a human sign-off.
 
-This is a real trade-off, not an oversight. Saying "we researched this and found
-nothing" is more honest, but it also makes the interface noisier and draws
-attention to absences. It needs a UI decision, and a small contract addition if
-the distinction should survive to the client.
+### Running the Factory adapter
+
+Factory's `@factory/droid-sdk` authenticates with `FACTORY_API_KEY`; it is not
+a generic model inference API. A single isolated, one-shot SDK call returns a
+structured JSON action. The adapter uses autonomy Off, rejects permission
+requests, disables built-in skills, and **rejects any tool activity**. The
+model sees only the bounded turn; our server code executes the allowlisted
+MusicBrainz tools. The SDK runs in a temporary directory outside the repo.
+It needs the `droid` CLI on `PATH`, a valid Factory account, and an available
+model ID that you explicitly choose; a default model is intentionally not
+used. It does not run in the production Fastify API.
+
+Store `FACTORY_API_KEY`, `FACTORY_RESEARCH_MODEL_ID`, and `QLOO_API_KEY` in a
+private local environment. From the repository root:
+
+```sh
+pnpm --dir apps/api research:factory -- --artist "Tame Impala" --max-pairs 1 --live
+```
+
+The `--live` flag and `--max-pairs 1` are explicit cost guards; each pair can
+invoke at most six Factory SDK decisions and five MusicBrainz source requests
+(the recording credit tool uses two),
+plus the bounded Qloo discovery requests. The CLI permits only named featured
+artists. No run occurs when keys or the model ID are absent. Output is written
+with restrictive permissions under ignored `apps/api/research-drafts/` as an
+`UNREVIEWED_RESEARCH_DRAFT`; it is never imported automatically. **Before an
+authenticated run**, confirm Factory model availability, usage/credit policy,
+and approval for the resulting spend. A passing mock test is not a paid/live
+verification or acceptance by hackathon judges. MusicBrainz uses an
+identifying User-Agent and >=1.1-second per-host throttle.
 
 Note on persistence, which was open in the first draft: the precomputed corpus
 needs **no database**. It is a reviewed source file, versioned in git, validated
@@ -128,9 +184,9 @@ edge.basis.kind = "documented"  +  edge.references[]  +  edge.basis.sourceUrl
 BasisBadge renders "DOCUMENTED" and links the citation
 ```
 
-Nothing new was needed in the graph contract: `explainConnection()` already
-accepted a citation, and the schema already required `references` for a
-`documented` basis. The agent is the caller that was missing.
+The existing graph contract enforced `references` for a documented basis.
+`researchStatus` now also distinguishes a reviewed decline from an
+unresearched pair; the offline runner is not wired into production.
 
 ## What was verified live
 
@@ -161,17 +217,14 @@ answered for the built half.
    precomputed corpus can be **read and checked before submission**. Research
    done live during judging cannot be reviewed in advance and fails visibly if a
    provider is slow.
-2. **Provider: deferred behind a seam.** `ConnectionResearchModel` is the only
-   thing a provider must implement. The seam is testable today with no provider,
-   which is why it was built first. The default implementation reports
-   `not_configured` instead of throwing.
+2. **Provider: deferred behind a seam.** `ResearchDecisionModel.next` is the
+   offline tool-use interface. The legacy `ConnectionResearchModel` seam
+   remains but has no provider; the new interface also has no hosted adapter.
 3. **Placement: inside `apps/api`.** No new service. Research is offline, so it
    needs no runtime the API cannot provide, and `AGENTS.md` §0 keeps the Fastify
    boundary.
 
-Still open: whether a *researched decline* should be distinguishable in the UI
-from an unresearched pair (the data already distinguishes them —
-`hasResearched()` versus `documented()` — but nothing surfaces it yet).
+The UI now distinguishes an existing reviewed decline from an unresearched pair.
 
 ## Failure modes
 
@@ -179,9 +232,9 @@ from an unresearched pair (the data already distinguishes them —
 |---|---|
 | Model provider times out or errors | Edge keeps its previous rung. Never an error page, never an empty card. |
 | Budget exhausted | Refuse locally without spending a call, like the Spotify `cooldownUntil` path. Cached results keep serving. |
-| Provider returns a claim with no citation | Rejected. Treated as a decline, not stored. |
-| Fetched page contains injected instructions | Treated as data. Output is schema-validated before it is stored or returned. |
-| Two nodes with no plausible connection | A correct decline, displayed as such. |
+| Provider returns a claim with no citation | Rejected as `unavailable`, not misrepresented as a declined search. |
+| Source contains injected instructions | Only bounded structured MusicBrainz relation fields reach the model; still untrusted and never followed as instructions. |
+| Two nodes with no cited relation after both are checked | May produce an unreviewed decline draft; editorial review controls publication. |
 | Citation URL later 404s | The statement is attributed to a named source; a dead link is a source problem to surface, not a reason to drop the provenance. |
 
 ## Acceptance criteria
@@ -211,6 +264,6 @@ Still open:
       not editorial review. This is the same caveat the featured-world facts
       already carry, and it is the one thing standing between these edges and
       being signed off.
-- [ ] A model provider is chosen, and the seam implemented.
-- [ ] A researched decline is surfaced as such (see *Remaining open question*).
+- [x] A local offline Factory adapter is implemented and has made bounded authenticated attempts; no successful model finding exists yet.
+- [x] An existing reviewed decline is surfaced as such; model drafts are not published.
 - [ ] The corpus covers more than two featured Worlds.

@@ -7,11 +7,13 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsup",
     "start": "node dist/server.js",
+    "research:factory": "tsx src/research-runner.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@factory/droid-sdk": "0.10.0",
     "@fastify/cors": "^11.1.0",
     "@fastify/rate-limit": "^11.2.1",
     "@worlds/shared": "workspace:*",

@@ -45,6 +45,13 @@ export const connectionCitationSchema = z.object({
 });
 export type ConnectionCitation = z.infer<typeof connectionCitationSchema>;
 
+/** One independently sourced claim in a story; citations never cover adjacent claims by implication. */
+export const connectionStoryClaimSchema = z.object({
+  text: z.string().trim().min(1).max(400),
+  citations: z.array(connectionCitationSchema).min(1).max(3)
+});
+export type ConnectionStoryClaim = z.infer<typeof connectionStoryClaimSchema>;
+
 /**
  * What the research did, so a decline is as auditable as a statement. A reader
  * can tell "we looked and there is nothing" from "we never looked", and a
@@ -75,13 +82,27 @@ export const connectionFindingSchema = z
     statement: z.string().min(1).max(400).nullable(),
     /** At least one for a `documented` finding. Empty for a decline. */
     citations: z.array(connectionCitationSchema),
+    /** Optional reviewed story beyond the single finding. No unsourced narrative fields. */
+    story: z.array(connectionStoryClaimSchema).max(4).optional(),
     method: researchMethodSchema,
-    /** When a human last checked this finding against its sources. */
+    /** Last check against source data; may be automated. */
     reviewedAt: z.iso.date(),
-    /** Who reviewed it. Named, so the claim has an owner. */
-    reviewedBy: z.string().min(1)
+    /** Who last checked the sources; not an editorial sign-off. */
+    reviewedBy: z.string().min(1),
+    /** Explicit publication approval; machine checking alone never sets this. */
+    editorialApproval: z.object({
+      reviewer: z.string().trim().min(1),
+      checkedAt: z.iso.date()
+    }).optional()
   })
   .superRefine((finding, ctx) => {
+    if (finding.editorialApproval && (
+      finding.editorialApproval.reviewer.startsWith("draft:") ||
+      finding.editorialApproval.reviewer === "droid" ||
+      finding.reviewedBy.startsWith("draft:")
+    )) {
+      ctx.addIssue({ code: "custom", message: "agent drafts cannot mark themselves editorially approved" });
+    }
     if (finding.outcome === "documented") {
       if (!finding.statement) {
         ctx.addIssue({ code: "custom", message: "a documented finding must state the relationship" });
@@ -92,6 +113,9 @@ export const connectionFindingSchema = z
           message: "a documented finding must cite the source it is documented in"
         });
       }
+      if (finding.story?.some((claim) => claim.citations.length === 0)) {
+        ctx.addIssue({ code: "custom", message: "every story claim requires a citation" });
+      }
       return;
     }
     // A decline says what was searched for and found nothing. It must not
@@ -101,6 +125,9 @@ export const connectionFindingSchema = z
     }
     if (finding.citations.length > 0) {
       ctx.addIssue({ code: "custom", message: "a declined finding must not carry citations" });
+    }
+    if (finding.story?.length) {
+      ctx.addIssue({ code: "custom", message: "a declined finding must not carry a story" });
     }
   });
 export type ConnectionFinding = z.infer<typeof connectionFindingSchema>;

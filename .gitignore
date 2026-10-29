@@ -24,6 +24,8 @@ coverage/
 
 # Logs
 *.log
+# Unreviewed offline agent transcripts and model/source observations
+apps/api/research-drafts/
 npm-debug.log*
 pnpm-debug.log*
 

@@ -159,6 +159,11 @@ export function NodeCard({
       {edge ? (
         <div className="space-y-2">
           <BasisBadge basis={edge.basis} />
+          {edge.researchStatus === "declined" ? (
+            <p className="type-small text-text-2">
+              Sources checked; no documented connection established from those sources. This remains a Qloo affinity.
+            </p>
+          ) : null}
           {edge.basis.shared.length > 0 ? (
             <ul className="flex flex-wrap gap-1.5">
               {edge.basis.shared.map((value) => (

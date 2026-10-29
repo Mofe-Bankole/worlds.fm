@@ -97,9 +97,9 @@ export function explainConnection(input: ExplainConnectionInput): EdgeBasis {
 
   return {
     kind: "audience_overlap",
-    // The badge already says "Audience overlap", so the sentence says what was
-    // looked for and not found rather than repeating the rung's name.
-    statement: `Qloo found no documented link and no shared trait between ${root.name} and ${target.name}.`,
+    // Qloo cannot establish that no documented connection exists. The review
+    // status is tracked separately on the edge and never inferred from Qloo.
+    statement: `Qloo recommends ${target.name} to fans of ${root.name}; no specific connection is established here.`,
     shared: [],
     sourceLabel: QLOO,
     sourceUrl: null

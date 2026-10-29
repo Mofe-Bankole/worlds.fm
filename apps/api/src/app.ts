@@ -87,6 +87,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     rateLimitPerMinute: config.qlooRateLimitPerMinute
   });
   await app.register(graphRoutes, {
+    findings,
     service: new CulturalDiscoveryService({
       adapter: qlooAdapter,
       musicBrainz,

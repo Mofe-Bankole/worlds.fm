@@ -145,7 +145,7 @@ describe("explainConnection: the evidence ladder", () => {
     );
     expect(basis.kind).toBe("audience_overlap");
     expect(basis.shared).toEqual([]);
-    expect(basis.statement).toContain("no documented link and no shared trait");
+    expect(basis.statement).toContain("no specific connection is established here");
     expect(basis.statement).toContain("Mock Root");
     expect(basis.statement).toContain("Mock Target");
     // The rung's name belongs to the badge, not repeated in every sentence.
@@ -184,6 +184,7 @@ describe("the contract rejects a documented basis with nothing behind it", () =>
       retrievedAt: "2026-10-24T00:00:00.000Z"
     },
     affinity: 0.9,
+    researchStatus: "unresearched",
     references: [],
     label: "mock",
     basis

@@ -173,14 +173,10 @@ export function buildCulturalGraph(
       }
       const affinity =
         typeof item.affinity === "number" && Number.isFinite(item.affinity) ? item.affinity : null;
-      // Precomputed research, if this pair was ever looked at. Null covers both
-      // "researched and declined" and "never researched"; either way the edge
-      // keeps the weaker rung it can honestly support.
-      const documented =
-        input.findings?.documented(
-          { name: rootNode.name, category: rootNode.category },
-          { name: node.name, category: node.category }
-        ) ?? null;
+      const pairA = { name: rootNode.name, category: rootNode.category };
+      const pairB = { name: node.name, category: node.category };
+      const finding = input.findings?.find(pairA, pairB);
+      const documented = input.findings?.documented(pairA, pairB) ?? null;
       const basis = explainConnection({
         root: parsedRoot.data,
         target: parsed.data,
@@ -206,6 +202,7 @@ export function buildCulturalGraph(
           retrievedAt: response.provenance.retrievedAt
         },
         affinity,
+        researchStatus: finding?.outcome ?? "unresearched",
         // Non-empty exactly when the basis is `documented`; the schema rejects
         // a documented basis without them.
         references: documented?.references ?? [],

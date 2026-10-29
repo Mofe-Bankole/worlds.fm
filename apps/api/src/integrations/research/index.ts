@@ -9,7 +9,7 @@ import { ProviderError } from "../../lib/errors.js";
 /**
  * The connection agent's model seam (AGENTS.md §12).
  *
- * Research runs **offline**, in a generator, not on the request path. The
+ * Research runs **offline**, in a runner, not on the request path. The
  * server only ever reads the reviewed artifact that a generator produced, so
  * this module is deliberately not wired into `app.ts`: a request never waits on
  * a model, and the running API needs no model credentials at all.
@@ -27,8 +27,9 @@ import { ProviderError } from "../../lib/errors.js";
  *   cannot be smuggled in as a "decline";
  * - anything that does not parse is discarded, never repaired.
  *
- * A provider is dropped in by implementing {@link ConnectionResearchModel}.
- * Nothing else changes.
+ * This legacy seam is retained for compatibility with the reviewed corpus;
+ * the offline tool-use interface lives in `agent.ts`. Neither is enabled by
+ * the production API without an explicit provider and review workflow.
  */
 
 export interface ResearchRequest {

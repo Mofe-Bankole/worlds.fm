@@ -7,5 +7,6 @@ export * from "./media.js";
 export * from "./qloo.js";
 export * from "./cultural-graph.js";
 export * from "./connection-agent.js";
+export * from "./artist-connections.js";
 export * from "./cultural-discovery.js";
 export * from "./music.js";

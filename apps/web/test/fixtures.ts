@@ -41,6 +41,7 @@ function edge(
     evidence: "qloo_affinity",
     provenance: { provider: "qloo", endpoint: "/v2/insights", mode: "live", environment: "hackathon", retrievedAt: AT },
     affinity,
+    researchStatus: "unresearched",
     references: [],
     label,
     basis: {
@@ -67,8 +68,8 @@ export const FIXTURE_GRAPH = culturalGraphSchema.parse({
   edges: [
     edge("00000000-0000-4000-8000-0000000000b2", 0.98, "Both are tagged Mock and Shared.", { kind: "shared_attribute", shared: ["Mock", "Shared"] }),
     edge("00000000-0000-4000-8000-0000000000b1", 0.9, "Qloo lists Mock Artist among Mock Artist B's influences.", { kind: "provider_attribute" }),
-    edge("00000000-0000-4000-8000-0000000000b3", 0.8, "Qloo found no documented link and no shared trait between Mock Artist and Mock Destination. A recommendation, not a verified location."),
-    edge("00000000-0000-4000-8000-0000000000b4", null, "Qloo found no documented link and no shared trait between Mock Artist and No Score Artist."),
+    edge("00000000-0000-4000-8000-0000000000b3", 0.8, "Qloo recommends Mock Destination to fans of Mock Artist; no specific connection is established here. A recommendation, not a verified location."),
+    edge("00000000-0000-4000-8000-0000000000b4", null, "Qloo recommends No Score Artist to fans of Mock Artist; no specific connection is established here."),
   ],
   retrieval: {
     retrievedAt: AT,

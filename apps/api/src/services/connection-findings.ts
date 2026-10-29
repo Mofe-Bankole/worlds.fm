@@ -1,4 +1,4 @@
-import type { ConnectionFinding, ConnectionParty, SourceReference } from "@worlds/shared";
+import { artistConnectionResponseSchema, type ArtistConnectionResponse, type ConnectionFinding, type ConnectionParty, type SourceReference } from "@worlds/shared";
 
 import { CONNECTION_FINDINGS } from "../content/connection-findings.js";
 import { normalizeName } from "../lib/matching.js";
@@ -114,5 +114,25 @@ export class ConnectionFindingsIndex {
   /** Every finding, for review tooling and tests. */
   all(): readonly ConnectionFinding[] {
     return this.findings;
+  }
+
+  /** Constant-time, source-bound story lookup; no provider or model work on a click. */
+  artistConnection(a: string, b: string): ArtistConnectionResponse {
+    const finding = this.find({ name: a, category: "artist" }, { name: b, category: "artist" });
+    const approved = Boolean(finding?.editorialApproval);
+    const documented = approved && finding?.outcome === "documented" && finding.statement;
+    return artistConnectionResponseSchema.parse({
+      subject: a,
+      target: b,
+      status: finding ? (approved ? finding.outcome : "pending_review") : "unresearched",
+      statement: documented || null,
+      claims: documented
+        ? [{ text: documented, citations: finding.citations }, ...(finding?.story ?? [])]
+        : [],
+      reviewedAt: approved ? finding?.editorialApproval?.checkedAt ?? null : null,
+      research: approved && finding?.editorialApproval
+        ? { consulted: finding.method.consulted, approvedBy: finding.editorialApproval.reviewer }
+        : null
+    });
   }
 }

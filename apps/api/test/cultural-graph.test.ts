@@ -159,6 +159,7 @@ describe("buildCulturalGraph (mock fixtures, no network)", () => {
       relationship: "affinity_recommendation",
       evidence: "qloo_affinity",
       references: [],
+      researchStatus: "unresearched",
       provenance: { provider: "qloo", endpoint: "/v2/insights", mode: "live", retrievedAt: RETRIEVED_AT }
     });
     expect(graph.retrieval.edgesByEvidence).toEqual({ qloo_affinity: 1 });

@@ -49,6 +49,18 @@ const MB = {
   tameImpala: "63aa26c3-d59b-4da4-84ac-716b54f1ef4d",
   kevinParker: "b0ad6d5e-44f1-41a3-a452-1c378d350cb8",
   pond: "69ac44f7-c80d-47b4-9bc8-fcc758d209e6",
+  femiKuti: "702d2b90-eef0-4354-b2c4-6366eba92b7f",
+} as const;
+
+/**
+ * Produced by a live connection-agent run (Qloo selected the pair, the agent
+ * read MusicBrainz, a human approved publication). The run's private draft is
+ * the audit trail; the citation was re-read against MusicBrainz on approval.
+ */
+const agentRun = {
+  reviewedAt: "2026-10-28",
+  reviewedBy: "connection agent (factory:claude-opus-5); citation re-read against MusicBrainz",
+  editorialApproval: { reviewer: "Worlds.fm editorial", checkedAt: "2026-10-28" },
 } as const;
 
 const mbCitation = (id: string, label: string) => ({
@@ -138,6 +150,19 @@ const findings: ConnectionFinding[] = [
     reviewedBy,
   },
 
+  {
+    subject: { name: "Femi Kuti", category: "artist" },
+    target: { name: "Seun Kuti", category: "artist" },
+    outcome: "documented",
+    statement: 'MusicBrainz records Femi Kuti has MusicBrainz artist relation "sibling" with Seun Kuti.',
+    citations: [mbCitation(MB.femiKuti, "MusicBrainz — Femi Kuti")],
+    method: {
+      consulted: ["MusicBrainz — Femi Kuti"],
+      query: "Qloo-selected Femi Kuti / Seun Kuti pair",
+    },
+    ...agentRun,
+  },
+
   /* ------------------------------- Declines ------------------------------- */
   // Recorded so a reader can tell "we looked and there is nothing" from "we
   // never looked". Both are correct answers; only one is a finding.
@@ -167,6 +192,18 @@ const findings: ConnectionFinding[] = [
     },
     reviewedAt: reviewed,
     reviewedBy,
+  },
+  {
+    subject: { name: "Femi Kuti", category: "artist" },
+    target: { name: "Orlando Julius", category: "artist" },
+    outcome: "declined",
+    statement: null,
+    citations: [],
+    method: {
+      consulted: ["MusicBrainz — Femi Kuti", "MusicBrainz — Orlando Julius"],
+      query: "Qloo-selected Femi Kuti / Orlando Julius pair",
+    },
+    ...agentRun,
   },
 ];
 

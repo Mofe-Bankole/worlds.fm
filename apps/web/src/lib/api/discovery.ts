@@ -2,8 +2,10 @@ import {
   DISCOVERY_MAX_PER_CATEGORY,
   QLOO_IMAGE_BATCH_MAX,
   culturalDiscoveryResponseSchema,
+  artistConnectionResponseSchema,
   qlooArtistImagesResponseSchema,
   type CulturalDiscoveryResponse,
+  type ArtistConnectionResponse,
 } from "@worlds/shared";
 
 /**
@@ -31,6 +33,27 @@ export interface FetchArtistGraphOptions {
   baseUrl?: string;
   limit?: number;
   fetchFn?: typeof fetch;
+}
+
+/** Pair lookup is a read of published research, not a request to run the agent. */
+export async function fetchArtistConnection(
+  subject: string,
+  target: string,
+  options: { signal?: AbortSignal; baseUrl?: string; fetchFn?: typeof fetch } = {},
+): Promise<ArtistConnectionResponse | null> {
+  const base = resolveApiBaseUrl(options.baseUrl);
+  const url = `${base}/api/v1/graph/artist-connection?${new URLSearchParams({ subject, target })}`;
+  try {
+    const response = await (options.fetchFn ?? fetch)(url, {
+      headers: { accept: "application/json" },
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    if (!response.ok) return null;
+    const result = artistConnectionResponseSchema.safeParse(await response.json());
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
 }
 
 export function resolveApiBaseUrl(value: string | undefined = process.env.NEXT_PUBLIC_API_BASE_URL): string {

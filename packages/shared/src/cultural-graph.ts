@@ -152,6 +152,8 @@ export const culturalEdgeSchema = z
     /** Provider's original score, untouched. Null when not supplied. */
     affinity: z.number().nullable(),
     references: z.array(sourceReferenceSchema),
+    /** Review outcome for this pair, independent from its Qloo affinity. */
+    researchStatus: z.enum(["unresearched", "documented", "declined"]),
     /** What the link means, in words a user can read. */
     label: z.string().min(1),
     /** What the link is based on, and how strong that basis is. */
@@ -176,6 +178,9 @@ export const culturalEdgeSchema = z
         code: "custom",
         message: "a documented basis requires the source it is documented in"
       });
+    }
+    if ((edge.researchStatus === "documented") !== (edge.basis.kind === "documented")) {
+      ctx.addIssue({ code: "custom", message: "only documented research may supply a documented basis" });
     }
   });
 export type CulturalEdge = z.infer<typeof culturalEdgeSchema>;

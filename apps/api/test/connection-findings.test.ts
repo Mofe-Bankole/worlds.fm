@@ -294,6 +294,7 @@ describe("documented findings reach the graph", () => {
     const graph = buildCulturalGraph({ root, insights, findings: new ConnectionFindingsIndex([finding()]) });
     const edge = graph.edges[0];
     expect(edge?.basis.kind).toBe("documented");
+    expect(edge?.researchStatus).toBe("documented");
     expect(edge?.basis.statement).toContain("Mock Source records");
     expect(edge?.basis.sourceUrl).toBe("https://example.test/one");
     expect(edge?.references).toHaveLength(1);
@@ -306,6 +307,7 @@ describe("documented findings reach the graph", () => {
     const graph = buildCulturalGraph({ root, insights, findings: new ConnectionFindingsIndex([]) });
     const edge = graph.edges[0];
     expect(edge?.basis.kind).not.toBe("documented");
+    expect(edge?.researchStatus).toBe("unresearched");
     expect(edge?.references).toEqual([]);
     expect(edge?.affinity).toBe(0.9);
   });
@@ -316,12 +318,14 @@ describe("documented findings reach the graph", () => {
     ]);
     const graph = buildCulturalGraph({ root, insights, findings: declined });
     expect(graph.edges[0]?.basis.kind).not.toBe("documented");
+    expect(graph.edges[0]?.researchStatus).toBe("declined");
     expect(graph.edges[0]?.references).toEqual([]);
   });
 
   it("works with no findings index at all, as the route does without one", () => {
     const graph = buildCulturalGraph({ root, insights });
     expect(graph.edges[0]?.basis.kind).not.toBe("documented");
+    expect(graph.edges[0]?.researchStatus).toBe("unresearched");
     expect(graph.edges[0]?.references).toEqual([]);
   });
 });

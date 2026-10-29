@@ -152,7 +152,7 @@ Initialize `apps/web`, `apps/api`, and `packages/shared` in a single workspace. 
 
 **What it is.** Given two nodes in a cultural graph, the connection agent researches whether a real, documented connection between them exists, and returns either a **cited statement** or an honest **decline**. It is the only component permitted to produce a `documented` basis on a graph edge; that rung of the evidence ladder is deliberately unreachable from Qloo alone.
 
-The reviewed corpus lives in `apps/api/src/content/connection-findings.ts` and is validated at import, so an uncited finding fails the build rather than reaching a reader. The contract is `packages/shared/src/connection-agent.ts`, the lookup is `apps/api/src/services/connection-findings.ts`, and the model seam is `apps/api/src/integrations/research/`. Research runs **offline**: nothing on the request path calls a model. See `docs/backend/connection-agent.md` for the design and `docs/backend/connection-explanations.md` for the ladder it feeds.
+The precomputed corpus lives in `apps/api/src/content/connection-findings.ts` and is validated at import, so an uncited finding fails the build rather than reaching a reader. Existing entries were machine-checked, **not human editorially signed off**. The contract is `packages/shared/src/connection-agent.ts`, the lookup is `apps/api/src/services/connection-findings.ts`, and the model seam is `apps/api/src/integrations/research/`. An offline provider-neutral Qloo-selection/source-tool runner is fixture-tested but has **no hosted model provider or production-generated findings yet**. Research runs offline: nothing on the request path calls a model. See `docs/backend/connection-agent.md` for the design and `docs/backend/connection-explanations.md` for the ladder it feeds.
 
 **Why both halves are required.** This is the product's central claim, so do not reduce it to either half:
 
@@ -174,7 +174,7 @@ Remove Qloo and the agent researches arbitrary pairs nobody asked about. Remove 
 9. **No user data, no profiling.** The agent researches public cultural sources. It never consumes listening history, location or profile data, and nothing it produces is derived from a person (§7).
 10. **Bounded cost.** Every call spends money. Per-request caps, caching and rate limits are required, and exhaustion must degrade gracefully, as the Spotify quota path already does.
 
-**Not decided here.** The execution model (on demand when a reader asks about a pair, versus precomputed for featured worlds), the model provider, and whether the work belongs inside `apps/api` or in a separate service are **open**. They are recorded with their trade-offs in `docs/backend/connection-agent.md`. Do not resolve them by assumption: the Fastify boundary in §0 stands until a human approves a change.
+**Decided / pending.** The user chose offline precomputation for featured worlds and `apps/api` placement, with a provider-agnostic tool-use seam. The hosted model provider remains **unselected**; do not imply a live agent run until a provider-backed workflow produces and a human reviews a finding. See `docs/backend/connection-agent.md`. The Fastify boundary in §0 stands until a human approves a change.
 
 ---
 

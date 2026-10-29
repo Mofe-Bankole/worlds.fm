@@ -18,6 +18,7 @@ import { FEATURED_QUERIES } from "@/content/featured-worlds";
 import { cn } from "@/lib/cn";
 import { Discography } from "@/components/music/discography";
 import { ArtistSearchForm } from "./artist-search-form";
+import { ArtistConnections } from "./artist-connections";
 import { Constellation } from "./constellation";
 import { Filters } from "./filters";
 import { HintCard, NodeCard, RootCard } from "./node-detail";
@@ -68,9 +69,9 @@ export function ExplorerApp() {
   const orbitItems = useMemo<OrbitItem[]>(() => {
     if (!graph || !showGraph) return featured;
     const withImages = graph.nodes
-      .filter((n) => n.image)
+      .filter((n) => n.category === "artist" && n.image)
       .map((n) => ({ key: n.id, name: n.name, imageUrl: n.image?.url ?? null }));
-    return withImages.length > 0 ? withImages : featured;
+    return withImages;
   }, [graph, showGraph, featured]);
 
   return (
@@ -174,6 +175,7 @@ function GraphView({
   return (
     <div className="space-y-6">
       <PartialNotice data={data} />
+      <ArtistConnections graph={graph} onSelect={select} />
       <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-[16.5rem_minmax(0,1fr)_16.5rem] xl:gap-5">
         <div className="md:order-2 xl:order-1 xl:sticky xl:top-6">
           <RootCard graph={graph} node={root} view={view} onToggleView={toggleView} />

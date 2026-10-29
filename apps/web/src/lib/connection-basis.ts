@@ -49,7 +49,7 @@ export const BASIS: Record<ConnectionBasis, BasisMeta> = {
   audience_overlap: {
     label: "Audience overlap",
     meaning:
-      "Nothing beyond the affinity score: Qloo found no documented link and no shared trait between the two.",
+      "Nothing beyond the affinity score: no specific connection is established here. Check the research status to see whether sources were reviewed.",
     icon: "waves",
     dashArray: "1.5 4",
     toneClass: "text-text-2",

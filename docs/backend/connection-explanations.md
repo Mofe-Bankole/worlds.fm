@@ -94,9 +94,10 @@ Against live Qloo on 2026-10-24, a Tame Impala graph produced 15 edges:
 |---|---|---|
 | `provider_attribute` | 1 | "Qloo lists Tame Impala among Pond's collaborators." |
 | `shared_attribute` | 4 | "Both are tagged psychedelic rock, neo-psychedelia and alternative rock." |
-| `audience_overlap` | 10 | "Qloo found no documented link and no shared trait between Tame Impala and Patagonia." |
+| `audience_overlap` | 10 | "Qloo recommends Patagonia to fans of Tame Impala; no specific connection is established here." |
 
 No `documented` edge, as expected. Cold graph 4.56s, cached graph 2ms.
+These were observations from the earlier run, not a new live verification.
 
 ## Tests
 

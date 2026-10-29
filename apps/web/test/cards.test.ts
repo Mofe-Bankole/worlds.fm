@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { fetchArtistImages } from "@/lib/api/discovery";
+import { fetchArtistConnection, fetchArtistImages } from "@/lib/api/discovery";
 import { describeCounts, firstSentence, strongestNeighbour } from "@/lib/explorer/model";
 import { loadArtistImages, resetArtistImageStore } from "@/lib/use-artist-images";
 import { FIXTURE_GRAPH } from "./fixtures";
@@ -14,6 +14,30 @@ function imagesBody(images: { name: string; imageUrl: string | null }[]) {
 
 const respond = (body: unknown, status = 200) =>
   (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
+
+describe("fetchArtistConnection", () => {
+  it("reads a cited pair and never treats a bad response as research", async () => {
+    const urls: string[] = [];
+    const body = {
+      subject: "Mock A", target: "Mock B", status: "documented",
+      statement: "Mock A produced Mock B's song.", reviewedAt: "2026-10-27",
+      claims: [{ text: "Mock A produced Mock B's song.", citations: [
+        { sourceLabel: "Test source", sourceUrl: "https://example.test/story", license: null }
+      ] }],
+      research: { consulted: ["Test source"], approvedBy: "Human editor" }
+    };
+    const fetchFn = (async (url: string) => {
+      urls.push(url);
+      return new Response(JSON.stringify(body));
+    }) as unknown as typeof fetch;
+    expect((await fetchArtistConnection("Mock A", "Mock B", { fetchFn, baseUrl: "https://api.test" }))?.status)
+      .toBe("documented");
+    expect(urls[0]).toContain("subject=Mock+A&target=Mock+B");
+    expect(await fetchArtistConnection("Mock A", "Mock B", {
+      fetchFn: respond({ ...body, claims: [{ text: "No citation", citations: [] }] })
+    })).toBeNull();
+  });
+});
 
 describe("fetchArtistImages", () => {
   it("asks for a sorted, de-duplicated batch in one request", async () => {
