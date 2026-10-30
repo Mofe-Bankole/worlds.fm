@@ -35,7 +35,7 @@ export function CoverArt({
           <span aria-hidden="true" className="font-serif text-4xl leading-none text-text-3">
             {title.trim().charAt(0).toUpperCase()}
           </span>
-          <span className="text-[0.6875rem] uppercase tracking-[0.14em] text-text-3">No cover available</span>
+          <span className="text-xs text-text-3">No cover available</span>
         </div>
       )}
     </div>

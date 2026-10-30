@@ -113,7 +113,7 @@ export function CulturalOrbit() {
                   x={CENTER}
                   y={CENTER - radius + 6}
                   textAnchor="middle"
-                  className={`${LABEL} fill-text-3 font-mono text-[15px] uppercase tracking-[0.18em]`}
+                  className={`${LABEL} fill-text-3 font-mono text-[15px]`}
                 >
                   {caption}
                 </text>

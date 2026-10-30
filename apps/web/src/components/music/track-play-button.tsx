@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Play } from "lucide-react";
 import { fetchRecordingStory } from "@/lib/api/music";
 import { lookupTrackForPlayback } from "@/lib/music/track-play";
 import { cn } from "@/lib/cn";
@@ -54,11 +55,11 @@ export function TrackPlayButton({ recordingMbid, title, artist }: {
         aria-label={`Play ${title} in the player`}
         aria-controls="music-mini-player"
         className={cn(
-          "inline-flex items-center justify-center gap-2 border border-line-strong px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-text transition-colors hover:border-electric hover:text-vibrant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric",
+          "inline-flex items-center justify-center gap-2 border border-line-strong px-2.5 py-1 text-xs font-medium text-text transition-colors hover:border-electric hover:text-vibrant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric",
           "disabled:cursor-wait disabled:opacity-60",
         )}
       >
-        <span aria-hidden="true">▶</span>{phase === "loading" ? "Finding…" : "Play"}
+        <Play aria-hidden="true" className="size-4 shrink-0" />{phase === "loading" ? "Finding…" : "Play"}
       </button>
       {phase === "unavailable" ? <span role="status" className="text-xs text-text-2">No Spotify link found for this recording.</span> : null}
       {spotifyId ? <PlayerIndicator kind="track" id={spotifyId} /> : null}

@@ -85,23 +85,25 @@ export function SongView({ mbid, story }: { mbid: string; story: RecordingStoryR
  */
 function Unavailable({ mbid }: { mbid: string }) {
   return (
-    <div className="space-y-4 border border-line-strong bg-surface-1 p-5 sm:p-8" role="alert">
-      <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-text">This song is not available right now</h1>
-      <p className="text-sm leading-relaxed text-text-2">
-        The music catalogue did not answer in time, or was temporarily unreachable. The recording itself is unchanged,
-        and MusicBrainz still has it.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        {/* A reload is the retry: this page is rendered on the server. */}
-        <Link
-          href={`/song/${mbid}`}
-          className="border border-line-strong px-3 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
-        >
-          Try again
-        </Link>
-        <ExternalLink href={`https://musicbrainz.org/recording/${mbid}`} className="text-sm">
-          Open on MusicBrainz
-        </ExternalLink>
+    <div className="grid min-h-[60svh] place-items-center">
+      <div role="alert" className="w-full max-w-2xl space-y-4 border border-line-strong bg-surface-1 p-6 sm:p-8">
+        <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-text">This song is not available right now</h1>
+        <p className="text-sm leading-relaxed text-text-2">
+          The music catalogue did not answer in time, or was temporarily unreachable. The recording itself is unchanged,
+          and MusicBrainz still has it.
+        </p>
+        <div className="flex flex-wrap items-center gap-4 pt-1">
+          {/* A reload is the retry: this page is rendered on the server. */}
+          <Link
+            href={`/song/${mbid}`}
+            className="border border-line-strong px-4 py-2 text-sm font-medium text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
+          >
+            Try again
+          </Link>
+          <ExternalLink href={`https://musicbrainz.org/recording/${mbid}`} className="text-sm">
+            Open on MusicBrainz
+          </ExternalLink>
+        </div>
       </div>
     </div>
   );

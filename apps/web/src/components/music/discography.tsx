@@ -221,7 +221,7 @@ function Releases({
             tabIndex={kind === k ? 0 : -1}
             onClick={() => setKind(k)}
             className={cn(
-              "px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-electric",
+              "px-4 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-electric",
               kind === k ? "bg-text text-night" : "text-text-2 hover:text-text",
             )}
           >

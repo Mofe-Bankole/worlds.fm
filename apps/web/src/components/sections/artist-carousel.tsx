@@ -151,15 +151,15 @@ export function FeaturedCarousel({ images = [] }: { images?: readonly OrbitItem[
           <p className="type-eyebrow text-text-3">
             Featured worlds · <span className="text-text-2">Demo data</span>
           </p>
-          <h2 id="featured-heading" className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-text sm:text-3xl">
-            Ten artists, and the places, tracks, products and collaborations around them
+          <h2 id="featured-heading" className="mt-3 text-balance text-2xl font-semibold tracking-[-0.03em] text-text sm:text-3xl">
+            Ten artists, and the connections around them
           </h2>
           <ul aria-label="Connection types" className="mt-4 flex flex-wrap gap-2">
             {(Object.keys(HIGHLIGHT_LABEL) as HighlightType[]).map((type) => {
               const Icon = HIGHLIGHT_ICON[type];
               return (
                 <li key={type} className="featured-chip">
-                  <Icon aria-hidden="true" className="size-3" />
+                  <Icon aria-hidden="true" className="size-4" strokeWidth={1.5} />
                   {HIGHLIGHT_LABEL[type]}
                 </li>
               );
@@ -237,7 +237,7 @@ export function FeaturedCarousel({ images = [] }: { images?: readonly OrbitItem[
               aria-current={index === active ? "true" : undefined}
               className="group relative h-6 flex-1"
             >
-              <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 overflow-hidden bg-line transition-[height] group-hover:h-1">
+              <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 overflow-hidden bg-line transition-colors group-hover:bg-line-strong">
                 <span
                   // Re-keyed per slide so the timer restarts from zero on every change.
                   key={index === active ? `run-${active}` : "idle"}

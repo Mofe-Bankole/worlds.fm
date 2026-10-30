@@ -188,7 +188,7 @@ export function StoryBody({
           <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
             <Link
               href={songPath(data.recording.mbid)}
-              className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-vibrant underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
+              className="text-xs font-medium text-vibrant underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric"
             >
               Open this song’s page
             </Link>

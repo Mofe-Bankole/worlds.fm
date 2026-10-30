@@ -15,7 +15,7 @@ export function Hero() {
     <section
       id="top"
       aria-labelledby="hero-heading"
-      className="relative isolate overflow-hidden pb-16 pt-36 sm:pt-44"
+      className="relative isolate overflow-hidden pb-6 pt-36 sm:pt-44"
     >
       <div aria-hidden="true" className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,color-mix(in_oklab,var(--color-forest)_70%,transparent),transparent_70%)]" />
@@ -60,7 +60,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="mt-16 sm:mt-20">
+      <div className="mt-12 sm:mt-16">
         <FeaturedCarousel images={images} />
       </div>
     </section>

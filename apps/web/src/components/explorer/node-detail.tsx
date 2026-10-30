@@ -87,7 +87,7 @@ export function RootCard({
     >
       {summary ? <p className="type-small text-text-2">{summary}</p> : null}
       {node.tags.length > 0 ? (
-        <p className="text-xs uppercase tracking-[0.14em] text-mint/80">{node.tags.slice(0, 3).join(" · ")}</p>
+        <p className="text-xs text-mint/80">{node.tags.slice(0, 3).join(" · ")}</p>
       ) : null}
     </SignalCard>
   );

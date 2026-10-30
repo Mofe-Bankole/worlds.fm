@@ -68,7 +68,7 @@ export function QuietButton({
       aria-expanded={expanded}
       aria-controls={controls}
       className={cn(
-        "border border-line-strong px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric",
+        "border border-line-strong px-3 py-1.5 text-xs font-medium text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric",
         (pressed || expanded) && "border-electric text-text",
         className,
       )}

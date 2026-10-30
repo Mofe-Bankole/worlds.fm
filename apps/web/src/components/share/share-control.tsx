@@ -38,7 +38,7 @@ export function ShareControl({
   if (label.length === 0) return null;
 
   const buttonClass =
-    "inline-flex items-center gap-1.5 border border-line-strong px-3 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric";
+    "inline-flex items-center gap-2 border border-line-strong px-3 py-1.5 text-xs font-medium text-text-2 transition-colors hover:border-electric hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-electric";
 
   return (
     <div className={cn(className)}>

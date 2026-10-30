@@ -80,8 +80,12 @@ export function ExplorerApp() {
       <div className="mx-auto w-full max-w-[var(--layout-max)] px-[var(--layout-gutter)] pb-20">
         <div
           className={cn(
-            "mx-auto flex max-w-2xl flex-col items-center gap-4 text-center",
-            state.phase === "idle" ? "pt-16 sm:pt-24" : "pt-2",
+            "mx-auto flex w-full max-w-2xl flex-col items-center text-center",
+            state.phase === "idle"
+              ? // One composition on the empty screen: title, search, what it does and
+                // the examples sit together, optically centred in the first screen.
+                "min-h-[calc(100svh-10rem)] justify-center gap-5"
+              : "gap-4 pt-2",
           )}
         >
           {state.phase === "idle" ? (
@@ -95,6 +99,7 @@ export function ExplorerApp() {
             <h1 className="sr-only">Cultural world explorer</h1>
           )}
           <ArtistSearchForm key={q} initialQuery={q} busy={state.phase === "loading"} onSubmit={submit} />
+          {state.phase === "idle" ? <IdlePanel onPick={submit} /> : null}
         </div>
 
         <div aria-live="polite" className="sr-only">
@@ -103,7 +108,6 @@ export function ExplorerApp() {
         </div>
 
         <div className="mt-8">
-          {state.phase === "idle" ? <IdlePanel onPick={submit} /> : null}
           {state.phase === "loading" ? <LoadingPanel query={state.query} /> : null}
           {state.phase === "done" && state.result.kind === "error" ? (
             <ErrorPanel
@@ -199,8 +203,8 @@ function GraphView({
                   aria-pressed={view === v}
                   onClick={() => setView(v)}
                   className={cn(
-                    "px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition-colors",
-                    view === v ? "bg-text text-night" : "text-text-2 hover:text-text",
+                    "px-3.5 py-1.5 text-xs transition-colors",
+                    view === v ? "bg-text font-medium text-night" : "text-text-2 hover:text-text",
                   )}
                 >
                   {v}

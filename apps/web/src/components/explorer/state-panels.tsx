@@ -8,9 +8,9 @@ export const EXAMPLE_QUERIES = ["Avicii", "Fela Kuti", "Rihanna", "Bob Marley"] 
 
 export function IdlePanel({ onPick }: { onPick: (query: string) => void }) {
   return (
-    <div className="mx-auto max-w-xl space-y-4 py-16 text-center">
-      <p className="type-lead text-text-2">
-        Search for an artist to see the cultural world Qloo connects around them: related artists, brands and destinations.
+    <div className="space-y-4 pt-1">
+      <p className="type-small mx-auto max-w-md text-text-2">
+        Search an artist to see the cultural world Qloo connects around them: related artists, brands and destinations.
       </p>
       <ul className="flex flex-wrap justify-center gap-2" aria-label="Example searches">
         {EXAMPLE_QUERIES.map((q) => (
@@ -18,7 +18,7 @@ export function IdlePanel({ onPick }: { onPick: (query: string) => void }) {
             <button
               type="button"
               onClick={() => onPick(q)}
-              className="border border-line-strong px-4 py-2 text-sm text-text-2 transition-colors hover:border-electric hover:text-text"
+              className="rounded-full border border-line-strong px-4 py-2 text-sm text-text-2 transition-colors hover:border-electric hover:text-text"
             >
               {q}
             </button>
@@ -35,7 +35,8 @@ export function LoadingPanel({ query }: { query: string }) {
       <div aria-hidden="true" className="relative size-40">
         <span className="absolute inset-0 animate-spin-slow border border-dashed border-line-strong" />
         <span className="absolute inset-6 animate-spin-slow border border-dashed border-line-strong [animation-direction:reverse]" />
-        <span className="absolute inset-[4.25rem] animate-pulse-glow bg-electric/70 shadow-glow-md" />
+        {/* The centre holds still while the rings turn, so the state reads as "working", not "pulsing". */}
+        <span className="absolute inset-[4.75rem] rounded-full bg-mint/25" />
       </div>
       <p className="type-small text-text-2">Mapping the cultural world of “{query}”…</p>
     </div>
